@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor Player
+    participant Frontend
+    participant API as Flask-RESTX API
+    participant DB as SQLite Database
+
+    Player->>Frontend: Finish game
+    Frontend->>API: POST /api/v1/scores
+    API->>API: Validate game_id and score
+    API->>DB: Save score
+    API->>DB: Query top 10 leaderboard
+    API->>DB: Query player personal rank
+    DB-->>API: Return leaderboard data
+    API-->>Frontend: Return top 10 and player rank
+    Frontend-->>Player: Display updated leaderboard

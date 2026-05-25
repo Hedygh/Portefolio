@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Flask-RESTX API
+    participant DB as SQLite Database
+
+    User->>Frontend: Enter email and username
+    Frontend->>API: POST /api/v1/auth/register
+    API->>API: Validate email and username
+    API->>DB: Create User
+    API->>DB: Create PlayerProfile
+    DB-->>API: User and profile saved
+    API-->>Frontend: Return success response
+    Frontend-->>User: Redirect to profile or play page

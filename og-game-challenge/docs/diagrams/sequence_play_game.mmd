@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor Player
+    participant Frontend
+    participant Game as JavaScript Game
+    participant API as Flask-RESTX API
+
+    Player->>Frontend: Open Play page
+    Frontend->>API: GET /api/v1/games
+    API-->>Frontend: Return available games
+    Frontend-->>Player: Display game cards
+    Player->>Frontend: Hover and select a game
+    Frontend->>Game: Start selected game
+    Game-->>Player: Run gameplay in browser
+    Game-->>Frontend: Game ends with final score

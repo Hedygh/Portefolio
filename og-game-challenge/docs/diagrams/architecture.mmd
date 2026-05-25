@@ -1,0 +1,20 @@
+flowchart TD
+    User[User / Player] --> Browser[Web Browser]
+
+    Browser --> Frontend[Frontend<br>HTML / CSS / JavaScript]
+
+    Frontend --> Games[JavaScript Mini-Games]
+    Frontend --> API[Flask-RESTX API]
+
+    API --> Services[Business Logic<br>Users / Games / Scores / Leaderboard]
+
+    Services --> ORM[SQLAlchemy ORM]
+
+    ORM --> DB[(SQLite Database)]
+
+    DB --> ORM
+    ORM --> Services
+    Services --> API
+    API --> Frontend
+    Games --> Frontend
+    Frontend --> Browser
