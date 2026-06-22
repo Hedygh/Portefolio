@@ -33,15 +33,7 @@ class ScoreList(Resource):
         except (TypeError, ValueError) as error:
             return {"error": str(error)}, 400
 
-        return {
-            "id": score.id,
-            "user_id": score.user.id,
-            "username": score.user.username,
-            "game_id": score.game.id,
-            "game_name": score.game.name,
-            "value": score.value,
-            "created_at": score.created_at.isoformat()
-        }, 201
+        return score.to_dict(), 201
 
 
 @api.route("/game/<string:game_id>/leaderboard")
@@ -58,12 +50,7 @@ class GameLeaderboard(Resource):
         return [
             {
                 "rank": index + 1,
-                "user_id": score.user.id,
-                "username": score.user.username,
-                "game_id": score.game.id,
-                "game_name": score.game.name,
-                "value": score.value,
-                "created_at": score.created_at.isoformat()
+                **score.to_dict()
             }
             for index, score in enumerate(leaderboard)
         ], 200

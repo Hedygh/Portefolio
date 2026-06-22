@@ -1,40 +1,17 @@
 from app.models.user import User
 from app.models.game import Game
 from app.models.score import Score
-from app.repositories.memory_repository import MemoryRepository
+from app.repositories.sqlalchemy_repository import SQLAlchemyRepository
 
 
 class GameChallengeFacade:
     """Main application facade."""
 
     def __init__(self):
-        """Initialize repositories and default data."""
-        self.user_repo = MemoryRepository()
-        self.game_repo = MemoryRepository()
-        self.score_repo = MemoryRepository()
-
-        self._initialize_games()
-
-    def _initialize_games(self):
-        """Create default games."""
-        games = [
-            (
-                "Dodge Runner",
-                "Avoid obstacles and survive as long as possible."
-            ),
-            (
-                "Endless Jumper",
-                "Jump between platforms before falling."
-            ),
-            (
-                "Falling Blocks",
-                "Avoid falling hazards and stay alive."
-            )
-        ]
-
-        for name, description in games:
-            game = Game(name, description)
-            self.game_repo.add(game)
+        """Initialize repositories."""
+        self.user_repo = SQLAlchemyRepository(User)
+        self.game_repo = SQLAlchemyRepository(Game)
+        self.score_repo = SQLAlchemyRepository(Score)
 
     def create_user(self, email, username):
         """Create a new user or return existing user by email."""
@@ -63,11 +40,7 @@ class GameChallengeFacade:
 
         normalized_email = email.strip().lower()
 
-        for user in self.user_repo.get_all():
-            if user.email == normalized_email:
-                return user
-
-        return None
+        return User.query.filter_by(email=normalized_email).first()
 
     def get_game(self, game_id):
         """Get a game by id."""
@@ -104,22 +77,19 @@ class GameChallengeFacade:
         if not game:
             raise ValueError("game not found")
 
-        scores = []
-
-        for score in self.score_repo.get_all():
-            if score.game.id == game_id:
-                scores.append(score)
-
-        return scores
+        return Score.query.filter_by(game_id=game_id).all()
 
     def get_leaderboard(self, game_id, limit=10):
         """Get leaderboard for a specific game."""
-        scores = self.get_game_scores(game_id)
+        game = self.get_game(game_id)
 
-        sorted_scores = sorted(
-            scores,
-            key=lambda score: score.value,
-            reverse=True
+        if not game:
+            raise ValueError("game not found")
+
+        return (
+            Score.query
+            .filter_by(game_id=game_id)
+            .order_by(Score.value.desc())
+            .limit(limit)
+            .all()
         )
-
-        return sorted_scores[:limit]

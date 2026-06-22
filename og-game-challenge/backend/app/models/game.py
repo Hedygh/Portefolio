@@ -1,12 +1,22 @@
+from app import db
 from app.models.base_model import BaseModel
 
 
 class Game(BaseModel):
-    """Game model."""
+    """Game database model."""
+
+    __tablename__ = "games"
+
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+
+    scores = db.relationship(
+        "Score",
+        back_populates="game",
+        cascade="all, delete-orphan"
+    )
 
     def __init__(self, name, description=""):
-        super().__init__()
-
         self.set_name(name)
         self.set_description(description)
 

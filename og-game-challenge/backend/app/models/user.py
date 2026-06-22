@@ -1,12 +1,22 @@
+from app import db
 from app.models.base_model import BaseModel
 
 
 class User(BaseModel):
-    """User model."""
+    """User database model."""
+
+    __tablename__ = "users"
+
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    username = db.Column(db.String(80), nullable=False)
+
+    scores = db.relationship(
+        "Score",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __init__(self, email, username):
-        super().__init__()
-
         self.set_email(email)
         self.set_username(username)
 

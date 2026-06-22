@@ -1,21 +1,31 @@
 from datetime import datetime
 from uuid import uuid4
 
+from app import db
 
-class BaseModel:
-    """Base class for all business models."""
 
-    IMMUTABLE_FIELDS = {"id", "created_at"}
+class BaseModel(db.Model):
+    """Base class for all database models."""
 
-    def __init__(self):
-        """Initialize common attributes."""
-        self.id = str(uuid4())
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
+    __abstract__ = True
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid4()))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
 
     def save(self):
-        """Update the updated_at timestamp."""
-        self.updated_at = datetime.now()
+        """Save current object."""
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        """Delete current object."""
+        db.session.delete(self)
+        db.session.commit()
 
     def update(self, data):
         """Update object attributes from a dictionary."""
@@ -23,16 +33,21 @@ class BaseModel:
             return
 
         for key, value in data.items():
-            if key not in self.IMMUTABLE_FIELDS:
+            if key not in {"id", "created_at"}:
                 setattr(self, key, value)
 
         self.save()
 
     def to_dict(self):
         """Return a dictionary representation of the object."""
-        result = self.__dict__.copy()
+        result = {}
 
-        result["created_at"] = self.created_at.isoformat()
-        result["updated_at"] = self.updated_at.isoformat()
+        for column in self.__table__.columns:
+            value = getattr(self, column.name)
+
+            if isinstance(value, datetime):
+                value = value.isoformat()
+
+            result[column.name] = value
 
         return result
