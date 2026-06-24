@@ -1,0 +1,254 @@
+/* ═══════════════════════════════════════
+   BACKGROUND
+═══════════════════════════════════════ */
+
+body {
+  background-image: url('../assets/bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 3, 20, 0.75);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════
+   NAVBAR (même que index)
+═══════════════════════════════════════ */
+
+.navbar {
+  position: relative;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 48px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.navbar__logo {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.navbar__logo-og {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--color-white);
+  letter-spacing: 4px;
+  border: 2px solid var(--color-purple-light);
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.navbar__logo-sub {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-purple-light);
+  letter-spacing: 4px;
+  margin-top: 3px;
+}
+
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.navbar__link {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: var(--color-gray);
+  transition: color 0.2s;
+  padding-bottom: 4px;
+}
+
+.navbar__link:hover { color: var(--color-white); }
+
+.navbar__login {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--color-white);
+  border: 1.5px solid var(--color-purple-dark);
+  padding: 10px 28px;
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  transition: background 0.2s;
+}
+
+.navbar__login:hover { background: rgba(124, 58, 237, 0.25); }
+
+/* ═══════════════════════════════════════
+   COINS HUD
+═══════════════════════════════════════ */
+
+.hud-corner {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+}
+
+.hud-corner--tl { top: 16px; left: 16px; border-top: 2px solid var(--color-purple-main); border-left: 2px solid var(--color-purple-main); }
+.hud-corner--tr { top: 16px; right: 16px; border-top: 2px solid var(--color-purple-main); border-right: 2px solid var(--color-purple-main); }
+.hud-corner--bl { bottom: 16px; left: 16px; border-bottom: 2px solid var(--color-purple-main); border-left: 2px solid var(--color-purple-main); }
+.hud-corner--br { bottom: 16px; right: 16px; border-bottom: 2px solid var(--color-purple-main); border-right: 2px solid var(--color-purple-main); }
+
+/* ═══════════════════════════════════════
+   REGISTER
+═══════════════════════════════════════ */
+
+.register {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 40px 48px;
+}
+
+.register__card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(8, 5, 30, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  padding: 48px 40px;
+  clip-path: polygon(20px 0%, 100% 0%, calc(100% - 20px) 100%, 0% 100%);
+  box-shadow: 0 0 60px rgba(160, 32, 240, 0.15);
+}
+
+.register__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.register__title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--color-white);
+  letter-spacing: 6px;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+
+.register__title span {
+  color: var(--color-purple-light);
+  text-shadow: 0 0 20px rgba(192, 132, 252, 0.6);
+}
+
+.register__sub {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--color-gray);
+}
+
+/* ═══════════════════════════════════════
+   FORM
+═══════════════════════════════════════ */
+
+.register__form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--color-purple-light);
+}
+
+.form-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(124, 58, 237, 0.5);
+  border-bottom: 2px solid var(--color-purple-main);
+  padding: 14px 16px;
+  color: var(--color-white);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  width: 100%;
+}
+
+.form-input::placeholder {
+  color: rgba(156, 163, 175, 0.4);
+  font-size: 11px;
+}
+
+.form-input:focus {
+  border-color: var(--color-purple-light);
+  background: rgba(160, 32, 240, 0.08);
+}
+
+/* ═══════════════════════════════════════
+   BOUTON SUBMIT
+═══════════════════════════════════════ */
+
+.btn-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(5, 3, 20, 0.85);
+  border: 2px solid var(--color-gold);
+  padding: 18px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--color-white);
+  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
+  margin-top: 8px;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.btn-submit:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+/* ═══════════════════════════════════════
+   LIEN LOGIN
+═══════════════════════════════════════ */
+
+.register__login-link {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--color-gray);
+}
+
+.register__login-link a {
+  color: var(--color-purple-light);
+  transition: color 0.2s;
+}
+
+.register__login-link a:hover {
+  color: var(--color-white);
+}

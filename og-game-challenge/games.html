@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenges — OG Game Challenge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/games.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar__logo">
+      <span class="navbar__logo-og">OG</span>
+      <span class="navbar__logo-sub">CHALLENGE</span>
+    </div>
+    <ul class="navbar__links">
+      <li><a href="index.html" class="navbar__link">HOME</a></li>
+      <li><a href="#" class="navbar__link">ABOUT</a></li>
+      <li><a href="games.html" class="navbar__link navbar__link--active">CHALLENGES</a></li>
+      <li><a href="leaderboard.html" class="navbar__link">LEADERBOARD</a></li>
+      <li><a href="#" class="navbar__link">COMMUNITY</a></li>
+      <li><a href="#" class="navbar__link">FAQ</a></li>
+    </ul>
+    <a href="login.html" class="navbar__login">LOGIN</a>
+  </nav>
+
+  <!-- GAMES -->
+  <main class="games">
+
+    <span class="hud-corner hud-corner--tl"></span>
+    <span class="hud-corner hud-corner--tr"></span>
+    <span class="hud-corner hud-corner--bl"></span>
+    <span class="hud-corner hud-corner--br"></span>
+
+    <div class="games__header">
+      <h1 class="games__title">SELECT YOUR <span>CHALLENGE</span></h1>
+      <p class="games__sub">CHOOSE A GAME. BEAT THE RECORDS. BECOME A LEGEND.</p>
+    </div>
+
+    <!-- Les cartes sont injectées par JS -->
+    <div class="games__grid" id="gamesGrid"></div>
+
+  </main>
+
+  <script src="js/games.js"></script>
+</body>
+</html>
