@@ -53,30 +53,30 @@
     </div>
   </main>
 
-  <script src="../js/api.js"></script>
-  <script src="../js/session.js"></script>
-  <script src="../js/score-adapter.js"></script>
-  <script src="../js/games/platformer_escape.js"></script>
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const scoreElement = document.getElementById("scoreValue");
-    const messageElement = document.getElementById("statusText");
-    const startButton = document.getElementById("startButton");
-    const stopButton = document.getElementById("stopButton");
+<script src="../js/api.js"></script>
+<script src="../js/session.js"></script>
+<script src="../js/score-adapter.js"></script>
+<script src="../js/games/platformer_escape.js"></script>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const scoreElement = document.getElementById("scoreValue");
+  const messageElement = document.getElementById("statusText");
+  const startButton = document.getElementById("startButton");
+  const stopButton = document.getElementById("stopButton");
 
-    const game = window.createDodgeRunner({
-      canvas: canvas,
-      scoreElement: scoreElement,
-      messageElement: messageElement
-    });
+  const game = window.createPlatformerEscape({
+    canvas: canvas,
+    scoreElement: scoreElement,
+    messageElement: messageElement
+  });
 
-    startButton.addEventListener("click", () => {
-      game.start();
-    });
+  startButton.addEventListener("click", () => {
+    game.start();
+  });
 
-    stopButton.addEventListener("click", () => {
-      game.stop(true);
-    });
-  </script>
+  stopButton.addEventListener("click", () => {
+    game.stop(true);
+  });
+</script>
 </body>
 </html>
