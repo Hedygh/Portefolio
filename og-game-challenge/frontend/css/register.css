@@ -252,3 +252,19 @@ body::before {
 .register__login-link a:hover {
   color: var(--color-white);
 }
+.register__message {
+  min-height: 22px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.register__message--success {
+  color: var(--color-gold);
+}
+
+.register__message--error {
+  color: #ff4d6d;
+}

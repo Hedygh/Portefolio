@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/global.css" />
-  <link rel="stylesheet" href="css/index.css" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/index.css" />
 </head>
 <body>
 
@@ -23,14 +23,11 @@
 
     <ul class="navbar__links">
       <li><a href="index.html" class="navbar__link navbar__link--active">HOME</a></li>
-      <li><a href="#about" class="navbar__link">ABOUT</a></li>
       <li><a href="games.html" class="navbar__link">CHALLENGES</a></li>
       <li><a href="leaderboard.html" class="navbar__link">LEADERBOARD</a></li>
-      <li><a href="#community" class="navbar__link">COMMUNITY</a></li>
-      <li><a href="#faq" class="navbar__link">FAQ</a></li>
     </ul>
 
-    <a href="login.html" class="navbar__login">LOGIN</a>
+    <div id="authArea"></div>
   </nav>
 
   <!-- ═══════════════════════════════════════
@@ -67,6 +64,7 @@
     </div>
 
   </main>
+<script src="../js/session.js"></script>
 
 </body>
 </html>

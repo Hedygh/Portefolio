@@ -1,33 +1,37 @@
-// ═══════════════════════════════════════
-// REGISTER — Mock API (à connecter à Flask plus tard)
-// ═══════════════════════════════════════
+const registerBtn = document.getElementById("registerBtn");
+const registerMessage = document.getElementById("registerMessage");
 
-const registerBtn = document.getElementById('registerBtn');
+function showMessage(message, type) {
+  registerMessage.textContent = message;
+  registerMessage.className = `register__message register__message--${type}`;
+}
 
-registerBtn.addEventListener('click', async () => {
-  const username = document.getElementById('username').value.trim();
-  const email    = document.getElementById('email').value.trim();
+registerBtn.addEventListener("click", async () => {
+  const username = document.getElementById("username").value.trim();
+  const email = document.getElementById("email").value.trim();
 
-  // Validation basique
   if (!username || !email) {
-    alert('Please fill in all fields.');
+    showMessage("Please fill in all fields.", "error");
     return;
   }
 
-  if (!email.includes('@')) {
-    alert('Please enter a valid email.');
+  if (!email.includes("@")) {
+    showMessage("Please enter a valid email.", "error");
     return;
   }
 
-  // TODO: remplacer par un vrai fetch quand le backend est prêt
-  // const res = await fetch('/api/v1/auth/register', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ username, email })
-  // });
+  try {
+    const user = await createUser(username, email);
 
-  // Mock — simule une inscription réussie
-  console.log('Registering:', { username, email });
-  alert(`Welcome, ${username}! Your account has been created.`);
-  window.location.href = 'index.html';
+    localStorage.setItem("og_user", JSON.stringify(user));
+
+    showMessage(`Welcome, ${user.username}. Redirecting...`, "success");
+
+    setTimeout(() => {
+      window.location.href = "games.html";
+    }, 900);
+  } catch (error) {
+    console.error(error);
+    showMessage(error.message || "Registration failed.", "error");
+  }
 });
