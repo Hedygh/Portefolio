@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Platformer Escape — OG Game Challenge</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -34,49 +35,64 @@
       <p class="games__sub">JUMP. SURVIVE. SUBMIT YOUR SCORE.</p>
     </div>
 
-    <div class="canvas-wrap">
-      <canvas id="gameCanvas" width="720" height="420"></canvas>
-    </div>
+    <div class="game-layout">
 
-    <div class="game-status">
-      <div class="status-text" id="statusText">Ready</div>
-      <div class="score-box">
-        <span>Score</span>
-        <strong class="score-value" id="scoreValue">0</strong>
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="720" height="420"></canvas>
       </div>
-    </div>
 
-    <div class="game-actions">
-      <button class="game-card__btn game-card__btn--play" id="startButton">START</button>
-      <button class="game-card__btn game-card__btn--board" id="stopButton">STOP</button>
-      <a class="game-card__btn game-card__btn--board" href="games.html">BACK</a>
+      <div class="game-status">
+        <div class="status-text" id="statusText">Ready</div>
+
+        <div class="score-box">
+          <span>Score</span>
+          <strong class="score-value" id="scoreValue">0</strong>
+        </div>
+      </div>
+
+      <div class="game-actions">
+        <button class="game-card__btn game-card__btn--play" id="startButton">
+          START
+        </button>
+
+        <button class="game-card__btn game-card__btn--board" id="stopButton">
+          STOP
+        </button>
+
+        <a class="game-card__btn game-card__btn--board" href="games.html">
+          BACK
+        </a>
+      </div>
+
     </div>
   </main>
 
-<script src="../js/api.js"></script>
-<script src="../js/session.js"></script>
-<script src="../js/score-adapter.js"></script>
-<script src="../js/games/platformer_escape.js"></script>
-<script>
-  const canvas = document.getElementById("gameCanvas");
-  const scoreElement = document.getElementById("scoreValue");
-  const messageElement = document.getElementById("statusText");
-  const startButton = document.getElementById("startButton");
-  const stopButton = document.getElementById("stopButton");
+  <script src="../js/api.js"></script>
+  <script src="../js/session.js"></script>
+  <script src="../js/score-adapter.js"></script>
+  <script src="../js/games/platformer_escape.js"></script>
 
-  const game = window.createPlatformerEscape({
-    canvas: canvas,
-    scoreElement: scoreElement,
-    messageElement: messageElement
-  });
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const scoreElement = document.getElementById("scoreValue");
+    const messageElement = document.getElementById("statusText");
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
 
-  startButton.addEventListener("click", () => {
-    game.start();
-  });
+    const game = window.createPlatformerEscape({
+      canvas: canvas,
+      scoreElement: scoreElement,
+      messageElement: messageElement
+    });
 
-  stopButton.addEventListener("click", () => {
-    game.stop(true);
-  });
-</script>
+    startButton.addEventListener("click", () => {
+      game.start();
+    });
+
+    stopButton.addEventListener("click", () => {
+      game.stop(true);
+    });
+  </script>
+
 </body>
 </html>

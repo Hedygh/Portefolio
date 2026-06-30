@@ -2,12 +2,12 @@ const grid = document.getElementById("gamesGrid");
 
 const GAME_UI = {
   "Dodge Runner": {
-    icon: "🏃",
+    preview: "../assets/RecordGame1.mp4",
     available: true,
     page: "game-dodge-runner.html"
   },
   "Platformer Escape": {
-    icon: "🎮",
+    preview: "../assets/RecordGame2.mp4",
     available: true,
     page: "game-platformer-escape.html"
   },
@@ -36,8 +36,14 @@ async function renderGames() {
 
       card.innerHTML = `
         <div class="game-card__visual">
-          <span class="game-card__icon">${ui.icon}</span>
-        </div>
+          ${
+            ui.preview
+              ? `<video class="game-card__preview" muted loop playsinline preload="metadata">
+                   <source src="${ui.preview}" type="video/mp4">
+                 </video>`
+              : `<span class="game-card__icon">⚡</span>`
+          }
+</div>
         <div class="game-card__body">
           <h2 class="game-card__name">${game.name}</h2>
           <p class="game-card__desc">${game.description || "Beat the score and climb the leaderboard."}</p>
@@ -54,6 +60,19 @@ async function renderGames() {
 
       grid.appendChild(card);
     });
+    document.querySelectorAll(".game-card__preview").forEach((video) => {
+
+        video.addEventListener("mouseenter", () => {
+            video.play();
+        });
+
+        video.addEventListener("mouseleave", () => {
+            video.pause();
+            video.currentTime = 0;
+        });
+
+    });
+
   } catch (error) {
     console.error(error);
     grid.innerHTML = `

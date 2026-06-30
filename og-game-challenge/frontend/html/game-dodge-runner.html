@@ -35,22 +35,33 @@
       <p class="games__sub">DODGE OBSTACLES. SURVIVE. SUBMIT YOUR SCORE.</p>
     </div>
 
-    <div class="canvas-wrap">
-      <canvas id="gameCanvas" width="720" height="420"></canvas>
-    </div>
-
-    <div class="game-status">
-      <div class="status-text" id="statusText">Ready</div>
-      <div class="score-box">
-        <span>Score</span>
-        <strong class="score-value" id="scoreValue">0</strong>
+    <div class="game-layout">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="720" height="420"></canvas>
       </div>
-    </div>
 
-    <div class="game-actions">
-      <button class="game-card__btn game-card__btn--play" id="startButton">START</button>
-      <button class="game-card__btn game-card__btn--board" id="stopButton">STOP</button>
-      <a class="game-card__btn game-card__btn--board" href="games.html">BACK</a>
+      <div class="game-status">
+        <div class="status-text" id="statusText">Ready</div>
+
+        <div class="score-box">
+          <span>Score</span>
+          <strong class="score-value" id="scoreValue">0</strong>
+        </div>
+      </div>
+
+      <div class="game-actions">
+        <button class="game-card__btn game-card__btn--play" id="startButton">
+          START
+        </button>
+
+        <button class="game-card__btn game-card__btn--board" id="stopButton">
+          STOP
+        </button>
+
+        <a class="game-card__btn game-card__btn--board" href="games.html">
+          BACK
+        </a>
+      </div>
     </div>
   </main>
 
@@ -58,6 +69,7 @@
   <script src="../js/session.js"></script>
   <script src="../js/score-adapter.js"></script>
   <script src="../js/games/dodge_runner.js"></script>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const scoreElement = document.getElementById("scoreValue");
