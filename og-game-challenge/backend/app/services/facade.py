@@ -1,3 +1,4 @@
+from app import db
 from app.models.user import User
 from app.models.game import Game
 from app.models.score import Score
@@ -51,7 +52,7 @@ class GameChallengeFacade:
         return self.game_repo.get_all()
 
     def submit_score(self, user_id, game_id, value):
-        """Submit a new score for a user and a game."""
+        """Submit or update the best score for a user and a game."""
         user = self.get_user(user_id)
         game = self.get_game(game_id)
 
@@ -60,6 +61,19 @@ class GameChallengeFacade:
 
         if not game:
             raise ValueError("game not found")
+
+        existing_score = (
+            Score.query
+            .filter_by(user_id=user_id, game_id=game_id)
+            .first()
+        )
+
+        if existing_score:
+            if value > existing_score.value:
+                existing_score.set_value(value)
+                db.session.commit()
+
+            return existing_score
 
         score = Score(user, game, value)
         self.score_repo.add(score)

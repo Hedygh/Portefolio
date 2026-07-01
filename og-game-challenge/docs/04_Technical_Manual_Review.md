@@ -741,11 +741,7 @@ Dans notre projet :
 ```
 User
 
-Place
-
-Review
-
-Amenity
+games
 
 Score
 ```
@@ -941,12 +937,7 @@ Exemple simplifié :
 ```
 User
  │
- ├──────── owns ───────► Place
- │
- ├──────── writes ─────► Review
- │
- ▼
-Score
+ ├──────── owns ───────► Score <--Games
 ```
 
 Les principales relations sont :

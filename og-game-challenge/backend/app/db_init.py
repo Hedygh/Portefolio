@@ -19,20 +19,20 @@ def seed_default_games():
     games = [
         (
             "Dodge Runner",
-            "Avoid obstacles and survive as long as possible."
+            "Dodge obstacles, survive as long as possible, and climb the leaderboard."
         ),
         (
-            "Endless Jumper",
-            "Jump between platforms before falling."
+            "Platformer Escape",
+            "Jump, run, and escape through a retro platform challenge."
         ),
         (
-            "Falling Blocks",
-            "Avoid falling hazards and stay alive."
+            "Speed Click Challenge",
+            "Coming soon."
         )
     ]
 
     for name, description in games:
-        game = Game(name, description)
+        game = Game(name=name, description=description)
         db.session.add(game)
 
     db.session.commit()
