@@ -9,8 +9,9 @@ function showMessage(message, type) {
 registerBtn.addEventListener("click", async () => {
   const username = document.getElementById("username").value.trim();
   const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  if (!username || !email) {
+  if (!username || !email || !password) {
     showMessage("Please fill in all fields.", "error");
     return;
   }
@@ -20,12 +21,18 @@ registerBtn.addEventListener("click", async () => {
     return;
   }
 
+  if (password.length < 6) {
+    showMessage("Password must contain at least 6 characters.", "error");
+    return;
+  }
+
   try {
-    const user = await createUser(username, email);
+    const data = await register(username, email, password);
 
-    localStorage.setItem("og_user", JSON.stringify(user));
+    localStorage.setItem("og_token", data.access_token);
+    localStorage.setItem("og_user", JSON.stringify(data.user));
 
-    showMessage(`Welcome, ${user.username}. Redirecting...`, "success");
+    showMessage(`Welcome, ${data.user.username}. Redirecting...`, "success");
 
     setTimeout(() => {
       window.location.href = "games.html";

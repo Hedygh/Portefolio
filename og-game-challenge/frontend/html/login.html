@@ -3,46 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register — OG Game Challenge</title>
+  <title>Login — OG Game Challenge</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="stylesheet" href="../css/register.css" />
 </head>
 <body>
 
-  <!-- NAVBAR -->
   <nav class="navbar">
     <div class="navbar__logo">
       <span class="navbar__logo-og">OG</span>
       <span class="navbar__logo-sub">CHALLENGE</span>
     </div>
+
     <ul class="navbar__links">
       <li><a href="index.html" class="navbar__link">HOME</a></li>
       <li><a href="games.html" class="navbar__link">CHALLENGES</a></li>
       <li><a href="leaderboard.html" class="navbar__link">LEADERBOARD</a></li>
     </ul>
+
     <div id="authArea"></div>
   </nav>
 
-  <!-- REGISTER FORM -->
   <main class="register">
-
     <span class="hud-corner hud-corner--tl"></span>
     <span class="hud-corner hud-corner--tr"></span>
     <span class="hud-corner hud-corner--bl"></span>
     <span class="hud-corner hud-corner--br"></span>
 
     <div class="register__card">
-
       <div class="register__header">
-        <h1 class="register__title">JOIN THE<br><span>CHALLENGE</span></h1>
-        <p class="register__sub">CREATE YOUR PLAYER IDENTITY</p>
+        <h1 class="register__title">WELCOME<br><span>BACK</span></h1>
+        <p class="register__sub">LOGIN TO YOUR PLAYER ACCOUNT</p>
       </div>
 
       <div class="register__form">
-
         <div class="form-group">
           <label class="form-label" for="username">USERNAME</label>
           <input
@@ -51,20 +50,9 @@
             id="username"
             name="username"
             placeholder="ENTER YOUR USERNAME"
-            maxlength="20"
           />
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="email">EMAIL</label>
-          <input
-            class="form-input"
-            type="email"
-            id="email"
-            name="email"
-            placeholder="ENTER YOUR EMAIL"
-          />
-        </div>
         <div class="form-group">
           <label class="form-label" for="password">PASSWORD</label>
           <input
@@ -73,23 +61,24 @@
             id="password"
             name="password"
             placeholder="ENTER YOUR PASSWORD"
-            minlength="6"
           />
         </div>
-        <p class="register__message" id="registerMessage"></p>
-        <button class="btn-submit" id="registerBtn">
-          REGISTER <span>→</span>
+
+        <p class="register__message" id="loginMessage"></p>
+
+        <button class="btn-submit" id="loginBtn">
+          LOGIN <span>→</span>
         </button>
 
         <p class="register__login-link">
-          ALREADY A LEGEND ? <a href="login.html">LOGIN HERE</a>
+          NEW CHALLENGER ? <a href="register.html">REGISTER HERE</a>
         </p>
-
       </div>
     </div>
   </main>
+
   <script src="../js/api.js"></script>
   <script src="../js/session.js"></script>
-  <script src="../js/register.js"></script>
+  <script src="../js/login.js"></script>
 </body>
 </html>

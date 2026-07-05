@@ -2,16 +2,19 @@ const grid = document.getElementById("gamesGrid");
 
 const GAME_UI = {
   "Dodge Runner": {
+    slug: "dodge-runner",
     preview: "../assets/RecordGame1.mp4",
     available: true,
     page: "game-dodge-runner.html"
   },
   "Platformer Escape": {
+    slug: "platformer-escape",
     preview: "../assets/RecordGame2.mp4",
     available: true,
     page: "game-platformer-escape.html"
   },
   "Speed Click Challenge": {
+    slug: "speed-click-challenge",
     icon: "⚡",
     available: false,
     page: null
@@ -50,10 +53,10 @@ async function renderGames() {
           <div class="game-card__actions">
             ${
               ui.available
-                ? `<a class="game-card__btn game-card__btn--play" href="${ui.page}?game=${game.id}">PLAY</a>`
+                ? `<a class="game-card__btn game-card__btn--play" href="${ui.page}?game=${ui.slug}">PLAY</a>`
                 : `<span class="game-card__btn game-card__btn--board">COMING SOON</span>`
             }
-            <a class="game-card__btn game-card__btn--board" href="leaderboard.html?game=${game.id}">LEADERBOARD</a>
+            <a class="game-card__btn game-card__btn--board" href="leaderboard.html?game=${ui.slug}">LEADERBOARD</a>
           </div>
         </div>
       `;

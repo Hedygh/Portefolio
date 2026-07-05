@@ -1,16 +1,16 @@
-// ═══════════════════════════════════════
-// API SERVICE — Centralized backend communication
-// ═══════════════════════════════════════
-
 const API_BASE_URL = "http://127.0.0.1:5001/api/v1";
 
-// Generic request helper
+function getToken() {
+  return localStorage.getItem("og_token");
+}
+
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const config = {
     headers: {
       "Content-Type": "application/json",
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
       ...(options.headers || {})
     },
     ...options
@@ -34,17 +34,29 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-// USERS
-async function createUser(username, email) {
-  return await apiRequest("/users/", {
+// AUTH
+async function register(username, email, password) {
+  return await apiRequest("/auth/register", {
     method: "POST",
     body: JSON.stringify({
-      email: email,
-      username: username
+      username,
+      email,
+      password
     })
   });
 }
 
+async function login(username, password) {
+  return await apiRequest("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      username,
+      password
+    })
+  });
+}
+
+// USERS
 async function getUser(userId) {
   return await apiRequest(`/users/${userId}`);
 }
@@ -65,7 +77,7 @@ async function submitScore(userId, gameId, value) {
     body: JSON.stringify({
       user_id: userId,
       game_id: gameId,
-      value: value
+      value
     })
   });
 }

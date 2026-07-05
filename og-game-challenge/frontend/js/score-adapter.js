@@ -23,27 +23,39 @@ async function handleGameOver(gameKey, value) {
     return;
   }
 
-  try {
-  const savedScore = await submitScore(user.id, gameId, value);
-  const bestScore = savedScore.value;
-  const isNewBest = value >= bestScore;
+try {
+    const games = await getGames();
 
-  console.log("Score submitted:", {
-    game: gameKey,
-    user: user.username,
-    currentScore: value,
-    bestScore: bestScore
-  });
+    const selectedGame = games.find((game) => {
+      const slug = game.name.toLowerCase().replaceAll(" ", "-");
+      return slug === gameId;
+    });
 
-  showGameOverOverlay({
-    title: "GAME OVER",
-    score: value,
-    bestScore: bestScore,
-    isNewBest: isNewBest,
-    message: isNewBest ? "NEW PERSONAL BEST" : "SCORE SAVED",
-    gameId: gameId
-  });
-} catch (error) {
+    if (!selectedGame) {
+      console.error("Game not found:", gameId);
+      return;
+    }
+
+    const savedScore = await submitScore(user.id, selectedGame.id, value);
+    const bestScore = savedScore.value;
+    const isNewBest = value >= bestScore;
+
+    console.log("Score submitted:", {
+      game: gameKey,
+      user: user.username,
+      currentScore: value,
+      bestScore: bestScore
+    });
+
+    showGameOverOverlay({
+      title: "GAME OVER",
+      score: value,
+      bestScore: bestScore,
+      isNewBest: isNewBest,
+      message: isNewBest ? "NEW PERSONAL BEST" : "SCORE SAVED",
+      gameId: gameId
+    });
+  } catch (error) {
     console.error(error);
 
     showGameOverOverlay({
@@ -53,7 +65,6 @@ async function handleGameOver(gameKey, value) {
       gameId: gameId
     });
   }
-}
 
 function showGameOverOverlay(data) {
   const existingOverlay = document.getElementById("gameOverOverlay");
@@ -110,3 +121,4 @@ function showGameOverOverlay(data) {
 }
 
 window.handleGameOver = handleGameOver;
+}

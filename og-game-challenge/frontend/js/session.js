@@ -12,8 +12,13 @@ function getCurrentUser() {
   return JSON.parse(user);
 }
 
+function getCurrentToken() {
+  return localStorage.getItem("og_token");
+}
+
 function logout() {
   localStorage.removeItem("og_user");
+  localStorage.removeItem("og_token");
   window.location.href = "index.html";
 }
 
@@ -35,12 +40,29 @@ function updateNavbar() {
     `;
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
-
   } else {
     authArea.innerHTML = `
-      <a href="register.html" class="navbar__login">REGISTER</a>
+      <div class="navbar__auth">
+        <a href="register.html" class="navbar__login">REGISTER</a>
+        <a href="login.html" class="navbar__login">LOGIN</a>
+      </div>
     `;
   }
 }
 
+function updateHomeCTA() {
+  const registerSection = document.getElementById("registerSection");
+
+  if (!registerSection) {
+    return;
+  }
+
+  if (getCurrentUser()) {
+    registerSection.style.display = "none";
+  } else {
+    registerSection.style.display = "flex";
+  }
+}
+
 updateNavbar();
+updateHomeCTA();
