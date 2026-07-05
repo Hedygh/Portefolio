@@ -2,3 +2,5 @@ Flask
 flask-restx
 python-dotenv
 Flask-SQLAlchemy
+Flask-Bcrypt
+Flask-JWT-Extended

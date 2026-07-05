@@ -14,15 +14,28 @@ class GameChallengeFacade:
         self.game_repo = SQLAlchemyRepository(Game)
         self.score_repo = SQLAlchemyRepository(Score)
 
-    def create_user(self, email, username):
-        """Create a new user or return existing user by email."""
-        existing_user = self.get_user_by_email(email)
+    def register_user(self, email, username, password):
+        """Register a new user."""
+        if self.get_user_by_email(email):
+            raise ValueError("email already exists")
 
-        if existing_user:
-            return existing_user
+        if self.get_user_by_username(username):
+            raise ValueError("username already exists")
 
-        user = User(email, username)
+        user = User(email, username, password)
         self.user_repo.add(user)
+
+        return user
+
+    def authenticate_user(self, username, password):
+        """Authenticate user with username and password."""
+        user = self.get_user_by_username(username)
+
+        if not user:
+            return None
+
+        if not user.verify_password(password):
+            return None
 
         return user
 
@@ -42,6 +55,15 @@ class GameChallengeFacade:
         normalized_email = email.strip().lower()
 
         return User.query.filter_by(email=normalized_email).first()
+
+    def get_user_by_username(self, username):
+        """Get a user by username."""
+        if not isinstance(username, str):
+            return None
+
+        normalized_username = username.strip()
+
+        return User.query.filter_by(username=normalized_username).first()
 
     def get_game(self, game_id):
         """Get a game by id."""
@@ -93,17 +115,20 @@ class GameChallengeFacade:
 
         return Score.query.filter_by(game_id=game_id).all()
 
-    def get_leaderboard(self, game_id, limit=10):
+    def get_leaderboard(self, game_id, limit=None):
         """Get leaderboard for a specific game."""
         game = self.get_game(game_id)
 
         if not game:
             raise ValueError("game not found")
 
-        return (
+        query = (
             Score.query
             .filter_by(game_id=game_id)
             .order_by(Score.value.desc())
-            .limit(limit)
-            .all()
         )
+
+        if limit:
+            query = query.limit(limit)
+
+        return query.all()

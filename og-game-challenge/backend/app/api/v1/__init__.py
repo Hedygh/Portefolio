@@ -8,6 +8,7 @@ from app.api.v1.games import api as games_ns
 from app.api.v1.users import api as users_ns
 from app.api.v1.scores import api as scores_ns
 
+from app.api.v1.auth import api as auth_ns
 
 api_bp = Blueprint("api_v1", __name__)
 
@@ -24,3 +25,5 @@ api.add_namespace(games_ns, path="/games")
 # Future namespaces
 api.add_namespace(users_ns, path="/users")
 api.add_namespace(scores_ns, path="/scores")
+
+api.add_namespace(auth_ns, path="/auth")
