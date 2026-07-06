@@ -1,5 +1,7 @@
 import { Player } from "./player.js";
 import { StarBackground } from "./background.js";
+import { keys } from "./input.js";
+import { Bullet } from "./bullets.js";
 
 export class Game {
   constructor(canvas, scoreElement, messageElement) {
@@ -11,6 +13,9 @@ export class Game {
 
     this.player = new Player();
     this.background = new StarBackground();
+
+    this.bullets = [];
+    this.shootCooldown = 0;
 
     this.score = 0;
     this.isRunning = false;
@@ -25,6 +30,9 @@ export class Game {
     this.player.reset();
     this.isRunning = true;
 
+    this.bullets = [];
+    this.shootCooldown = 0;
+
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
@@ -32,6 +40,8 @@ export class Game {
   update() {
     this.background.update();
     this.player.update();
+    this.updateShooting();
+    this.updateBullets();
   }
 
   draw() {
@@ -39,6 +49,9 @@ export class Game {
 
     this.background.draw(this.ctx);
     this.player.draw(this.ctx);
+    for (const bullet of this.bullets) {
+      bullet.draw(this.ctx);
+    }
   }
 
   loop() {
@@ -50,5 +63,24 @@ export class Game {
     this.draw();
 
     this.animationId = requestAnimationFrame(() => this.loop());
+  }
+  
+  updateShooting() {
+    if (this.shootCooldown > 0) {
+      this.shootCooldown--;
+    }
+
+    if (keys.shoot && this.shootCooldown === 0) {
+      this.bullets.push(new Bullet(this.player.x, this.player.y));
+      this.shootCooldown = 12;
+    }
+  }
+
+  updateBullets() {
+    for (const bullet of this.bullets) {
+      bullet.update();
+    }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
   }
 }

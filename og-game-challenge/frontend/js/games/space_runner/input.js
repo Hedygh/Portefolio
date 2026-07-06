@@ -1,6 +1,7 @@
 export const keys = {
   left: false,
-  right: false
+  right: false,
+  shoot: false
 };
 
 export function setupInput() {
@@ -14,6 +15,10 @@ export function setupInput() {
     if (event.key === "ArrowRight" || key === "d") {
       keys.right = true;
     }
+
+    if (event.code === "Space") {
+      keys.shoot = true;
+    }
   });
 
   document.addEventListener("keyup", function (event) {
@@ -25,6 +30,10 @@ export function setupInput() {
 
     if (event.key === "ArrowRight" || key === "d") {
       keys.right = false;
+    }
+
+    if (event.code === "Space") {
+      keys.shoot = true;
     }
   });
 }
