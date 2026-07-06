@@ -26,8 +26,8 @@ def seed_default_games():
             "Jump, run, and escape through a retro platform challenge."
         ),
         (
-            "Speed Click Challenge",
-            "Coming soon."
+            "Space Runner",
+            "Pilot your ship, destroy enemies, dodge meteors and survive as long as possible."
         )
     ]
 

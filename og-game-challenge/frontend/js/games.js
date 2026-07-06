@@ -13,11 +13,11 @@ const GAME_UI = {
     available: true,
     page: "game-platformer-escape.html"
   },
-  "Speed Click Challenge": {
-    slug: "speed-click-challenge",
+  "Space Runner": {
+    slug: "space-runner",
     icon: "⚡",
-    available: false,
-    page: null
+    available: true,
+    page: "space_runner.html"
   }
 };
 
