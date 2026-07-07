@@ -57,6 +57,7 @@ export class Game {
     this.updateEnemies();
 
     this.checkBulletEnemyCollisions();
+    this.checkPlayerEnemyCollisions();
     this.updateExplosions();
   }
 
@@ -183,5 +184,21 @@ export class Game {
 
       this.ctx.restore();
     }
+  }
+
+  checkPlayerEnemyCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const enemy of this.enemies) {
+      if (isColliding(playerHitbox, enemy)) {
+        this.endGame();
+        break;
+      }
+    }
+  }
+
+  endGame() {
+    this.isRunning = false;
+    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
   }
 }
