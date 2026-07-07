@@ -2,6 +2,7 @@ import { Player } from "./player.js";
 import { StarBackground } from "./background.js";
 import { keys } from "./input.js";
 import { Bullet } from "./bullets.js";
+import { Enemy } from "./enemies.js";
 
 export class Game {
   constructor(canvas, scoreElement, messageElement) {
@@ -16,6 +17,9 @@ export class Game {
 
     this.bullets = [];
     this.shootCooldown = 0;
+
+    this.enemies = [];
+    this.enemySpawnTimer = 0;
 
     this.score = 0;
     this.isRunning = false;
@@ -33,6 +37,9 @@ export class Game {
     this.bullets = [];
     this.shootCooldown = 0;
 
+    this.enemies = [];
+    this.enemySpawnTimer = 0;
+
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
@@ -42,6 +49,7 @@ export class Game {
     this.player.update();
     this.updateShooting();
     this.updateBullets();
+    this.updateEnemies();
   }
 
   draw() {
@@ -51,6 +59,9 @@ export class Game {
     this.player.draw(this.ctx);
     for (const bullet of this.bullets) {
       bullet.draw(this.ctx);
+    }
+    for (const enemy of this.enemies) {
+      enemy.draw(this.ctx);
     }
   }
 
@@ -64,7 +75,7 @@ export class Game {
 
     this.animationId = requestAnimationFrame(() => this.loop());
   }
-  
+
   updateShooting() {
     if (this.shootCooldown > 0) {
       this.shootCooldown--;
@@ -82,5 +93,20 @@ export class Game {
     }
 
     this.bullets = this.bullets.filter((bullet) => bullet.active);
+  }
+
+  updateEnemies() {
+    this.enemySpawnTimer++;
+
+    if (this.enemySpawnTimer >= 60) {
+        this.enemies.push(new Enemy());
+        this.enemySpawnTimer = 0;
+    }
+
+    for (const enemy of this.enemies) {
+        enemy.update();
+    }
+
+    this.enemies = this.enemies.filter((enemy) => enemy.active);
   }
 }
