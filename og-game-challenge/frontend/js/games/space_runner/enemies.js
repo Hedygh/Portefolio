@@ -1,12 +1,13 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./config.js";
 
 export class Enemy {
-  constructor() {
+  constructor(level = 1) {
     this.width = 34;
     this.height = 34;
     this.x = Math.random() * (CANVAS_WIDTH - this.width);
     this.y = -this.height;
-    this.speed = 2;
+
+    this.speed = 2 + level * 0.25;
     this.active = true;
   }
 

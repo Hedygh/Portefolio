@@ -27,6 +27,9 @@ export class Game {
     this.animationId = null;
 
     this.explosions = [];
+
+    this.frameCount = 0;
+    this.level = 1;
   }
 
   start() {
@@ -45,6 +48,9 @@ export class Game {
 
     this.explosions = [];
 
+    this.frameCount = 0;
+    this.level = 1;
+
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
@@ -59,6 +65,9 @@ export class Game {
     this.checkBulletEnemyCollisions();
     this.checkPlayerEnemyCollisions();
     this.updateExplosions();
+
+    this.player.update();
+    this.updateDifficulty();
   }
 
   draw() {
@@ -108,9 +117,11 @@ export class Game {
   updateEnemies() {
     this.enemySpawnTimer++;
 
-    if (this.enemySpawnTimer >= 60) {
-        this.enemies.push(new Enemy());
-        this.enemySpawnTimer = 0;
+    const spawnRate = Math.max(18, 60 - this.level * 4);
+
+    if (this.enemySpawnTimer >= spawnRate) {
+      this.enemies.push(new Enemy(this.level));
+      this.enemySpawnTimer = 0;
     }
 
     for (const enemy of this.enemies) {
@@ -195,6 +206,19 @@ export class Game {
         break;
       }
     }
+  }
+
+  updateDifficulty() {
+  this.frameCount++;
+
+  // Score de survie : +1 toutes les 10 frames
+    if (this.frameCount % 10 === 0) {
+      this.score += 1;
+      this.scoreElement.textContent = this.score;
+    }
+
+  // Niveau : augmente environ toutes les 10 secondes
+    this.level = Math.floor(this.frameCount / 600) + 1;
   }
 
   endGame() {
