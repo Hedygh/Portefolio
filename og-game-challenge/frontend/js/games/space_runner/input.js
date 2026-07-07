@@ -17,6 +17,7 @@ export function setupInput() {
     }
 
     if (event.code === "Space") {
+      event.preventDefault();
       keys.shoot = true;
     }
   });
@@ -33,7 +34,8 @@ export function setupInput() {
     }
 
     if (event.code === "Space") {
-      keys.shoot = true;
+      event.preventDefault();
+      keys.shoot = false;
     }
   });
 }
