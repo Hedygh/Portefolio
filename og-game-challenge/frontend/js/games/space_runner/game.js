@@ -3,6 +3,7 @@ import { StarBackground } from "./background.js";
 import { keys } from "./input.js";
 import { Bullet } from "./bullets.js";
 import { Enemy } from "./enemies.js";
+import { isColliding } from "./collision.js";
 
 export class Game {
   constructor(canvas, scoreElement, messageElement) {
@@ -24,6 +25,8 @@ export class Game {
     this.score = 0;
     this.isRunning = false;
     this.animationId = null;
+
+    this.explosions = [];
   }
 
   start() {
@@ -40,6 +43,8 @@ export class Game {
     this.enemies = [];
     this.enemySpawnTimer = 0;
 
+    this.explosions = [];
+
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
@@ -50,6 +55,9 @@ export class Game {
     this.updateShooting();
     this.updateBullets();
     this.updateEnemies();
+
+    this.checkBulletEnemyCollisions();
+    this.updateExplosions();
   }
 
   draw() {
@@ -63,6 +71,7 @@ export class Game {
     for (const enemy of this.enemies) {
       enemy.draw(this.ctx);
     }
+    this.drawExplosions();
   }
 
   loop() {
@@ -108,5 +117,71 @@ export class Game {
     }
 
     this.enemies = this.enemies.filter((enemy) => enemy.active);
+  }
+  checkBulletEnemyCollisions() {
+  for (const bullet of this.bullets) {
+    for (const enemy of this.enemies) {
+      if (isColliding(bullet, enemy)) {
+        bullet.active = false;
+        enemy.active = false;
+
+        this.score += 100;
+        this.scoreElement.textContent = this.score;
+
+        this.explosions.push({
+          x: enemy.x + enemy.width / 2,
+          y: enemy.y + enemy.height / 2,
+          radius: 4,
+          life: 15
+        });
+
+        break;
+      }
+    }
+  }
+
+  this.bullets = this.bullets.filter((bullet) => bullet.active);
+  this.enemies = this.enemies.filter((enemy) => enemy.active);
+  }
+
+  updateExplosions() {
+    for (const explosion of this.explosions) {
+      explosion.radius += 2;
+      explosion.life--;
+    }
+
+    this.explosions = this.explosions.filter((explosion) => explosion.life > 0);
+  }
+
+  drawExplosions() {
+    for (const explosion of this.explosions) {
+      this.ctx.save();
+
+      this.ctx.globalAlpha = explosion.life / 15;
+      this.ctx.fillStyle = "#ffcc00";
+
+      this.ctx.beginPath();
+      this.ctx.arc(
+        explosion.x,
+        explosion.y,
+        explosion.radius,
+        0,
+        Math.PI * 2
+      );
+      this.ctx.fill();
+
+      this.ctx.fillStyle = "#ff3300";
+      this.ctx.beginPath();
+      this.ctx.arc(
+        explosion.x,
+        explosion.y,
+        explosion.radius / 2,
+        0,
+        Math.PI * 2
+      );
+      this.ctx.fill();
+
+      this.ctx.restore();
+    }
   }
 }
