@@ -4,6 +4,7 @@ import { keys } from "./input.js";
 import { Bullet } from "./bullets.js";
 import { Enemy } from "./enemies.js";
 import { isColliding } from "./collision.js";
+import { Meteor } from "./meteors.js";
 
 export class Game {
   constructor(canvas, scoreElement, messageElement) {
@@ -28,6 +29,9 @@ export class Game {
 
     this.explosions = [];
 
+    this.meteors = [];
+    this.meteorSpawnTimer = 0;
+
     this.frameCount = 0;
     this.level = 1;
   }
@@ -48,6 +52,9 @@ export class Game {
 
     this.explosions = [];
 
+    this.meteors = [];
+    this.meteorSpawnTimer = 0;
+
     this.frameCount = 0;
     this.level = 1;
 
@@ -61,10 +68,13 @@ export class Game {
     this.updateShooting();
     this.updateBullets();
     this.updateEnemies();
+    this.updateMeteors();
 
     this.checkBulletEnemyCollisions();
     this.checkPlayerEnemyCollisions();
     this.updateExplosions();
+    this.checkBulletMeteorCollisions();
+    this.checkPlayerMeteorCollisions();
 
     this.player.update();
     this.updateDifficulty();
@@ -80,6 +90,9 @@ export class Game {
     }
     for (const enemy of this.enemies) {
       enemy.draw(this.ctx);
+    }
+    for (const meteor of this.meteors) {
+      meteor.draw(this.ctx);
     }
     this.drawExplosions();
   }
@@ -224,5 +237,61 @@ export class Game {
   endGame() {
     this.isRunning = false;
     this.messageElement.textContent = `Game Over — Score: ${this.score}`;
+  }
+
+  updateMeteors() {
+  this.meteorSpawnTimer++;
+
+  const spawnRate = Math.max(90, 180 - this.level * 8);
+
+  if (this.meteorSpawnTimer >= spawnRate) {
+    this.meteors.push(new Meteor(this.level));
+    this.meteorSpawnTimer = 0;
+  }
+
+  for (const meteor of this.meteors) {
+    meteor.update();
+  }
+
+  this.meteors = this.meteors.filter((meteor) => meteor.active);
+}
+
+  checkBulletMeteorCollisions() {
+    for (const bullet of this.bullets) {
+      for (const meteor of this.meteors) {
+        if (isColliding(bullet, meteor)) {
+          bullet.active = false;
+          meteor.takeDamage();
+
+          if (!meteor.active) {
+            this.score += 30;
+            this.scoreElement.textContent = this.score;
+
+            this.explosions.push({
+              x: meteor.x + meteor.width / 2,
+              y: meteor.y + meteor.height / 2,
+              radius: 6,
+              life: 12
+            });
+          }
+
+          break;
+        }
+      }
+    }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
+    this.meteors = this.meteors.filter((meteor) => meteor.active);
+  }
+
+  checkPlayerMeteorCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const meteor of this.meteors) {
+      if (isColliding(playerHitbox, meteor)) {
+        this.endGame();
+        break;
+      }
+    }
   }
 }

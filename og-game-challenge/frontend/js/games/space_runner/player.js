@@ -1,7 +1,7 @@
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
-  PLAYER_SPEED,
+  PLAYER_MOVE_SPEED,
   PLAYER_WIDTH,
   PLAYER_HEIGHT
 } from "./config.js";
@@ -12,7 +12,7 @@ export class Player {
   constructor() {
     this.width = PLAYER_WIDTH;
     this.height = PLAYER_HEIGHT;
-    this.speed = PLAYER_SPEED;
+    this.speed = PLAYER_MOVE_SPEED;
 
     this.x = CANVAS_WIDTH / 2;
     this.y = CANVAS_HEIGHT - 70;
