@@ -3,8 +3,9 @@ import { StarBackground } from "./background.js";
 import { keys } from "./input.js";
 import { Bullet } from "./bullets.js";
 import { Enemy } from "./enemies.js";
-import { isColliding } from "./collision.js";
 import { Meteor } from "./meteors.js";
+import { Bonus, BONUS_TYPES } from "./bonuses.js";
+import { isColliding } from "./collision.js";
 
 export class Game {
   constructor(canvas, scoreElement, messageElement) {
@@ -18,45 +19,52 @@ export class Game {
     this.background = new StarBackground();
 
     this.bullets = [];
-    this.shootCooldown = 0;
-
     this.enemies = [];
-    this.enemySpawnTimer = 0;
+    this.meteors = [];
+    this.explosions = [];
+    this.bonuses = [];
 
     this.score = 0;
-    this.isRunning = false;
-    this.animationId = null;
+    this.level = 1;
+    this.frameCount = 0;
 
-    this.explosions = [];
-
-    this.meteors = [];
+    this.shootCooldown = 0;
+    this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.frameCount = 0;
-    this.level = 1;
+    this.weaponLevel = 1;
+    this.bonusMessage = "";
+    this.bonusMessageTimer = 0;
+
+    this.isRunning = false;
+    this.animationId = null;
   }
 
   start() {
     this.score = 0;
+    this.level = 1;
+    this.frameCount = 0;
+
     this.scoreElement.textContent = this.score;
     this.messageElement.textContent = "";
 
     this.player.reset();
-    this.isRunning = true;
 
     this.bullets = [];
-    this.shootCooldown = 0;
-
     this.enemies = [];
-    this.enemySpawnTimer = 0;
-
-    this.explosions = [];
-
     this.meteors = [];
+    this.explosions = [];
+    this.bonuses = [];
+
+    this.shootCooldown = 0;
+    this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.frameCount = 0;
-    this.level = 1;
+    this.weaponLevel = 1;
+    this.bonusMessage = "";
+    this.bonusMessageTimer = 0;
+
+    this.isRunning = true;
 
     cancelAnimationFrame(this.animationId);
     this.loop();
@@ -65,36 +73,49 @@ export class Game {
   update() {
     this.background.update();
     this.player.update();
+    this.updateDifficulty();
+
     this.updateShooting();
     this.updateBullets();
     this.updateEnemies();
     this.updateMeteors();
 
     this.checkBulletEnemyCollisions();
-    this.checkPlayerEnemyCollisions();
-    this.updateExplosions();
     this.checkBulletMeteorCollisions();
+    this.checkPlayerEnemyCollisions();
     this.checkPlayerMeteorCollisions();
 
-    this.player.update();
-    this.updateDifficulty();
+    this.updateBonuses();
+    this.checkPlayerBonusCollisions();
+    this.updateBonusMessage();
+
+    this.updateExplosions();
   }
 
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.background.draw(this.ctx);
-    this.player.draw(this.ctx);
+
     for (const bullet of this.bullets) {
       bullet.draw(this.ctx);
     }
+
     for (const enemy of this.enemies) {
       enemy.draw(this.ctx);
     }
+
     for (const meteor of this.meteors) {
       meteor.draw(this.ctx);
     }
+
+    for (const bonus of this.bonuses) {
+      bonus.draw(this.ctx);
+    }
+
+    this.player.draw(this.ctx);
     this.drawExplosions();
+    this.drawBonusMessage();
   }
 
   loop() {
@@ -108,15 +129,42 @@ export class Game {
     this.animationId = requestAnimationFrame(() => this.loop());
   }
 
+  updateDifficulty() {
+    this.frameCount++;
+
+    if (this.frameCount % 10 === 0) {
+      this.score += 1;
+      this.scoreElement.textContent = this.score;
+    }
+
+    this.level = Math.floor(this.frameCount / 600) + 1;
+  }
+
   updateShooting() {
     if (this.shootCooldown > 0) {
       this.shootCooldown--;
     }
 
-    if (keys.shoot && this.shootCooldown === 0) {
-      this.bullets.push(new Bullet(this.player.x, this.player.y));
-      this.shootCooldown = 12;
+    if (!keys.shoot || this.shootCooldown !== 0) {
+      return;
     }
+
+    if (this.weaponLevel === 1) {
+      this.bullets.push(new Bullet(this.player.x, this.player.y));
+    }
+
+    if (this.weaponLevel === 2) {
+      this.bullets.push(new Bullet(this.player.x - 12, this.player.y + 10));
+      this.bullets.push(new Bullet(this.player.x + 12, this.player.y + 10));
+    }
+
+    if (this.weaponLevel === 3) {
+      this.bullets.push(new Bullet(this.player.x, this.player.y));
+      this.bullets.push(new Bullet(this.player.x - 18, this.player.y + 12));
+      this.bullets.push(new Bullet(this.player.x + 18, this.player.y + 12));
+    }
+
+    this.shootCooldown = 12;
   }
 
   updateBullets() {
@@ -138,35 +186,35 @@ export class Game {
     }
 
     for (const enemy of this.enemies) {
-        enemy.update();
+      enemy.update();
     }
 
     this.enemies = this.enemies.filter((enemy) => enemy.active);
   }
-  checkBulletEnemyCollisions() {
-  for (const bullet of this.bullets) {
-    for (const enemy of this.enemies) {
-      if (isColliding(bullet, enemy)) {
-        bullet.active = false;
-        enemy.active = false;
 
-        this.score += 100;
-        this.scoreElement.textContent = this.score;
+  updateMeteors() {
+    this.meteorSpawnTimer++;
 
-        this.explosions.push({
-          x: enemy.x + enemy.width / 2,
-          y: enemy.y + enemy.height / 2,
-          radius: 4,
-          life: 15
-        });
+    const spawnRate = Math.max(90, 180 - this.level * 8);
 
-        break;
-      }
+    if (this.meteorSpawnTimer >= spawnRate) {
+      this.meteors.push(new Meteor(this.level));
+      this.meteorSpawnTimer = 0;
     }
+
+    for (const meteor of this.meteors) {
+      meteor.update();
+    }
+
+    this.meteors = this.meteors.filter((meteor) => meteor.active);
   }
 
-  this.bullets = this.bullets.filter((bullet) => bullet.active);
-  this.enemies = this.enemies.filter((enemy) => enemy.active);
+  updateBonuses() {
+    for (const bonus of this.bonuses) {
+      bonus.update();
+    }
+
+    this.bonuses = this.bonuses.filter((bonus) => bonus.active);
   }
 
   updateExplosions() {
@@ -178,83 +226,32 @@ export class Game {
     this.explosions = this.explosions.filter((explosion) => explosion.life > 0);
   }
 
-  drawExplosions() {
-    for (const explosion of this.explosions) {
-      this.ctx.save();
+  checkBulletEnemyCollisions() {
+    for (const bullet of this.bullets) {
+      for (const enemy of this.enemies) {
+        if (isColliding(bullet, enemy)) {
+          bullet.active = false;
+          enemy.active = false;
 
-      this.ctx.globalAlpha = explosion.life / 15;
-      this.ctx.fillStyle = "#ffcc00";
+          this.score += 100;
+          this.scoreElement.textContent = this.score;
 
-      this.ctx.beginPath();
-      this.ctx.arc(
-        explosion.x,
-        explosion.y,
-        explosion.radius,
-        0,
-        Math.PI * 2
-      );
-      this.ctx.fill();
+          this.explosions.push({
+            x: enemy.x + enemy.width / 2,
+            y: enemy.y + enemy.height / 2,
+            radius: 4,
+            life: 15
+          });
 
-      this.ctx.fillStyle = "#ff3300";
-      this.ctx.beginPath();
-      this.ctx.arc(
-        explosion.x,
-        explosion.y,
-        explosion.radius / 2,
-        0,
-        Math.PI * 2
-      );
-      this.ctx.fill();
-
-      this.ctx.restore();
-    }
-  }
-
-  checkPlayerEnemyCollisions() {
-    const playerHitbox = this.player.getHitbox();
-
-    for (const enemy of this.enemies) {
-      if (isColliding(playerHitbox, enemy)) {
-        this.endGame();
-        break;
+          this.tryDropBonus(enemy);
+          break;
+        }
       }
     }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
+    this.enemies = this.enemies.filter((enemy) => enemy.active);
   }
-
-  updateDifficulty() {
-  this.frameCount++;
-
-  // Score de survie : +1 toutes les 10 frames
-    if (this.frameCount % 10 === 0) {
-      this.score += 1;
-      this.scoreElement.textContent = this.score;
-    }
-
-  // Niveau : augmente environ toutes les 10 secondes
-    this.level = Math.floor(this.frameCount / 600) + 1;
-  }
-
-  endGame() {
-    this.isRunning = false;
-    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
-  }
-
-  updateMeteors() {
-  this.meteorSpawnTimer++;
-
-  const spawnRate = Math.max(90, 180 - this.level * 8);
-
-  if (this.meteorSpawnTimer >= spawnRate) {
-    this.meteors.push(new Meteor(this.level));
-    this.meteorSpawnTimer = 0;
-  }
-
-  for (const meteor of this.meteors) {
-    meteor.update();
-  }
-
-  this.meteors = this.meteors.filter((meteor) => meteor.active);
-}
 
   checkBulletMeteorCollisions() {
     for (const bullet of this.bullets) {
@@ -284,6 +281,17 @@ export class Game {
     this.meteors = this.meteors.filter((meteor) => meteor.active);
   }
 
+  checkPlayerEnemyCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const enemy of this.enemies) {
+      if (isColliding(playerHitbox, enemy)) {
+        this.endGame();
+        break;
+      }
+    }
+  }
+
   checkPlayerMeteorCollisions() {
     const playerHitbox = this.player.getHitbox();
 
@@ -293,5 +301,106 @@ export class Game {
         break;
       }
     }
+  }
+
+  checkPlayerBonusCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const bonus of this.bonuses) {
+      if (isColliding(playerHitbox, bonus)) {
+        bonus.active = false;
+
+        if (bonus.type === BONUS_TYPES.DOUBLE_SHOT && this.weaponLevel < 2) {
+          this.weaponLevel = 2;
+          this.showBonusMessage("DOUBLE SHOT ACQUIRED");
+        }
+
+        if (bonus.type === BONUS_TYPES.TRIPLE_SHOT && this.weaponLevel < 3) {
+          this.weaponLevel = 3;
+          this.showBonusMessage("TRIPLE SHOT ACQUIRED");
+        }
+      }
+    }
+
+    this.bonuses = this.bonuses.filter((bonus) => bonus.active);
+  }
+
+  tryDropBonus(enemy) {
+    const roll = Math.random();
+
+    if (this.weaponLevel === 1 && roll < 0.08) {
+      this.bonuses.push(
+        new Bonus(
+          enemy.x + enemy.width / 2,
+          enemy.y + enemy.height / 2,
+          BONUS_TYPES.DOUBLE_SHOT
+        )
+      );
+    }
+
+    if (this.weaponLevel === 2 && roll < 0.02) {
+      this.bonuses.push(
+        new Bonus(
+          enemy.x + enemy.width / 2,
+          enemy.y + enemy.height / 2,
+          BONUS_TYPES.TRIPLE_SHOT
+        )
+      );
+    }
+  }
+
+  showBonusMessage(text) {
+    this.bonusMessage = text;
+    this.bonusMessageTimer = 120;
+  }
+
+  updateBonusMessage() {
+    if (this.bonusMessageTimer > 0) {
+      this.bonusMessageTimer--;
+    }
+  }
+
+  drawExplosions() {
+    for (const explosion of this.explosions) {
+      this.ctx.save();
+
+      this.ctx.globalAlpha = explosion.life / 15;
+      this.ctx.fillStyle = "#ffcc00";
+
+      this.ctx.beginPath();
+      this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.fillStyle = "#ff3300";
+      this.ctx.beginPath();
+      this.ctx.arc(
+        explosion.x,
+        explosion.y,
+        explosion.radius / 2,
+        0,
+        Math.PI * 2
+      );
+      this.ctx.fill();
+
+      this.ctx.restore();
+    }
+  }
+
+  drawBonusMessage() {
+    if (this.bonusMessageTimer <= 0) {
+      return;
+    }
+
+    this.ctx.save();
+    this.ctx.fillStyle = "#00ff66";
+    this.ctx.font = "20px monospace";
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(this.bonusMessage, this.canvas.width / 2, 40);
+    this.ctx.restore();
+  }
+
+  endGame() {
+    this.isRunning = false;
+    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
   }
 }
