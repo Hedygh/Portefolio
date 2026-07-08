@@ -6,14 +6,16 @@ import { Enemy } from "./enemies.js";
 import { Meteor } from "./meteors.js";
 import { Bonus, BONUS_TYPES } from "./bonuses.js";
 import { isColliding } from "./collision.js";
+import { SideEnemy } from "./sideEnemies.js";
 
 export class Game {
-  constructor(canvas, scoreElement, messageElement) {
+  constructor(canvas, scoreElement, levelElement, messageElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
 
     this.scoreElement = scoreElement;
     this.messageElement = messageElement;
+    this.levelElement = levelElement;
 
     this.player = new Player();
     this.background = new StarBackground();
@@ -47,6 +49,7 @@ export class Game {
 
     this.scoreElement.textContent = this.score;
     this.messageElement.textContent = "";
+    this.levelElement.textContent = this.level;
 
     this.player.reset();
 
@@ -138,6 +141,7 @@ export class Game {
     }
 
     this.level = Math.floor(this.frameCount / 600) + 1;
+    this.levelElement.textContent = this.level;
   }
 
   updateShooting() {
@@ -228,25 +232,26 @@ export class Game {
 
   spawnEnemy() {
     const roll = Math.random();
- 
-    // Niveau 1 : uniquement rouges
+
     if (this.level < 2) {
       this.enemies.push(new Enemy(this.level));
       return;
     }
 
-    // Niveau 2-3 : rouges majoritaires
     if (this.level < 4) {
-      if (roll < 0.85) {
+      if (roll < 0.75) {
         this.enemies.push(new Enemy(this.level));
+      } else {
+        this.enemies.push(new SideEnemy(this.level));
       }
 
       return;
     }
 
-    // Niveau 4+ : rouges moins fréquents
-    if (roll < 0.6) {
+    if (roll < 0.55) {
       this.enemies.push(new Enemy(this.level));
+    } else {
+      this.enemies.push(new SideEnemy(this.level));
     }
   }
 
