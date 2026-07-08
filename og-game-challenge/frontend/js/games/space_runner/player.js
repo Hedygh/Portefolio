@@ -24,12 +24,52 @@ export class Player {
   }
 
   update() {
-    if (keys.left && this.x - this.width / 2 > 0) {
-      this.x -= this.speed;
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.left) {
+      dx -= 1;
     }
 
-    if (keys.right && this.x + this.width / 2 < CANVAS_WIDTH) {
-      this.x += this.speed;
+    if (keys.right) {
+      dx += 1;
+    }
+
+    if (keys.up) {
+      dy -= 1;
+    }
+
+    if (keys.down) {
+      dy += 1;
+    }
+
+  // Normalisation diagonale
+    if (dx !== 0 && dy !== 0) {
+      dx *= 0.707;
+      dy *= 0.707;
+    }
+
+    this.x += dx * this.speed;
+    this.y += dy * this.speed;
+
+    const halfWidth = this.width / 2;
+    const topLimit = this.width / 2;
+    const bottomLimit = CANVAS_HEIGHT - this.width;
+
+    if (this.x - halfWidth < 0) {
+      this.x = halfWidth;
+    }
+
+    if (this.x + halfWidth > CANVAS_WIDTH) {
+      this.x = CANVAS_WIDTH - halfWidth;
+    }
+
+    if (this.y < topLimit) {
+      this.y = topLimit;
+    }
+
+    if (this.y > bottomLimit) {
+      this.y = bottomLimit;
     }
   }
   getHitbox() {
