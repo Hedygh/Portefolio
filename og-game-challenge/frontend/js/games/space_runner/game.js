@@ -178,10 +178,10 @@ export class Game {
   updateEnemies() {
     this.enemySpawnTimer++;
 
-    const spawnRate = Math.max(18, 60 - this.level * 4);
+    const spawnRate = Math.max(35, 80 - this.level * 3);
 
     if (this.enemySpawnTimer >= spawnRate) {
-      this.enemies.push(new Enemy(this.level));
+      this.spawnEnemy();
       this.enemySpawnTimer = 0;
     }
 
@@ -224,6 +224,30 @@ export class Game {
     }
 
     this.explosions = this.explosions.filter((explosion) => explosion.life > 0);
+  }
+
+  spawnEnemy() {
+    const roll = Math.random();
+ 
+    // Niveau 1 : uniquement rouges
+    if (this.level < 2) {
+      this.enemies.push(new Enemy(this.level));
+      return;
+    }
+
+    // Niveau 2-3 : rouges majoritaires
+    if (this.level < 4) {
+      if (roll < 0.85) {
+        this.enemies.push(new Enemy(this.level));
+      }
+
+      return;
+    }
+
+    // Niveau 4+ : rouges moins fréquents
+    if (roll < 0.6) {
+      this.enemies.push(new Enemy(this.level));
+    }
   }
 
   checkBulletEnemyCollisions() {
