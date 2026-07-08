@@ -74,6 +74,8 @@ export class Game {
     this.bonusMessageTimer = 0;
 
     this.isRunning = true;
+    this.gameOver = false;
+    this.playerVisible = true;
 
     cancelAnimationFrame(this.animationId);
     this.loop();
