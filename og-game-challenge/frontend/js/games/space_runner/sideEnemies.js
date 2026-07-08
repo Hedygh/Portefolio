@@ -8,19 +8,56 @@ export class SideEnemy {
     this.direction = Math.random() < 0.5 ? 1 : -1;
 
     this.x = this.direction === 1 ? -this.width : CANVAS_WIDTH;
-    const lowerTwoThirdsStart = CANVAS_HEIGHT / 3;
-    // Enemies spawn seulement aux 2tiers du bas de l'écran
-    this.y = lowerTwoThirdsStart + Math.random() * (CANVAS_HEIGHT - lowerTwoThirdsStart - this.height);
+    this.y = CANVAS_HEIGHT / 3 + Math.random() * (CANVAS_HEIGHT * 2 / 3 - this.height);
 
-    this.speed = 2 + level * 0.08;
+    this.speed = 0.55 + level * 0.03;
     this.active = true;
+
+    this.state = "moving_in";
+    this.shotsFired = 0;
+    this.shootTimer = 15;
+    this.pauseTimer = 120;
+
+    const minStop = CANVAS_WIDTH * 0.05;
+    const maxStop = CANVAS_WIDTH * 0.30;
+
+    if (this.direction === 1) {
+      this.stopX = minStop + Math.random() * (maxStop - minStop);
+    } else {
+      this.stopX = CANVAS_WIDTH - maxStop + Math.random() * (maxStop - minStop);
+    }
   }
 
   update() {
-    this.x += this.speed * this.direction;
+    if (this.state === "moving_in") {
+      this.x += this.speed * this.direction;
 
-    if (this.x > CANVAS_WIDTH + this.width || this.x < -this.width * 2) {
-      this.active = false;
+      if (
+        (this.direction === 1 && this.x >= this.stopX) ||
+        (this.direction === -1 && this.x <= this.stopX)
+      ) {
+        this.state = "attacking";
+      }
+
+      return;
+    }
+
+    if (this.state === "attacking") {
+      this.pauseTimer--;
+
+      if (this.pauseTimer <= 0 && this.shotsFired >= 3) {
+        this.state = "moving_out";
+      }
+
+      return;
+    }
+
+    if (this.state === "moving_out") {
+      this.x += this.speed * this.direction;
+
+      if (this.x > CANVAS_WIDTH + this.width || this.x < -this.width * 2) {
+        this.active = false;
+      }
     }
   }
 
@@ -33,7 +70,7 @@ export class SideEnemy {
       ctx.scale(-1, 1);
     }
 
-    ctx.fillStyle = "#002244";
+    ctx.fillStyle = this.state === "attacking" ? "#003366" : "#002244";
     ctx.strokeStyle = "#00aaff";
     ctx.lineWidth = 2;
 
@@ -47,7 +84,7 @@ export class SideEnemy {
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = "#00aaff";
+    ctx.fillStyle = this.state === "attacking" ? "#ffffff" : "#00aaff";
     ctx.fillRect(-6, -4, 12, 8);
 
     ctx.restore();

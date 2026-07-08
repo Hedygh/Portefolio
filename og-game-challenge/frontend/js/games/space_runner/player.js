@@ -74,10 +74,10 @@ export class Player {
   }
   getHitbox() {
     return {
-      x: this.x - this.width / 2,
-      y: this.y - this.width / 2,
-      width: this.width,
-      height: this.width * 1.6
+      x: this.x - this.width * 0.32,
+      y: this.y - this.width * 0.25,
+      width: this.width * 0.64,
+      height: this.width * 1.25
     };
   }
 

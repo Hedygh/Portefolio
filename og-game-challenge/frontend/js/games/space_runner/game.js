@@ -7,6 +7,7 @@ import { Meteor } from "./meteors.js";
 import { Bonus, BONUS_TYPES } from "./bonuses.js";
 import { isColliding } from "./collision.js";
 import { SideEnemy } from "./sideEnemies.js";
+import { EnemyBullet } from "./enemyBullets.js";
 
 export class Game {
   constructor(canvas, scoreElement, levelElement, messageElement) {
@@ -25,6 +26,7 @@ export class Game {
     this.meteors = [];
     this.explosions = [];
     this.bonuses = [];
+    this.enemyBullets = [];
 
     this.score = 0;
     this.level = 1;
@@ -37,6 +39,9 @@ export class Game {
     this.weaponLevel = 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
+
+    this.gameOver = false;
+    this.playerVisible = true;
 
     this.isRunning = false;
     this.animationId = null;
@@ -58,6 +63,7 @@ export class Game {
     this.meteors = [];
     this.explosions = [];
     this.bonuses = [];
+    this.enemyBullets = [];
 
     this.shootCooldown = 0;
     this.enemySpawnTimer = 0;
@@ -81,6 +87,8 @@ export class Game {
     this.updateShooting();
     this.updateBullets();
     this.updateEnemies();
+    this.updateEnemyBullets();
+    this.checkEnemyBulletPlayerCollisions();
     this.updateMeteors();
 
     this.checkBulletEnemyCollisions();
@@ -116,13 +124,20 @@ export class Game {
       bonus.draw(this.ctx);
     }
 
-    this.player.draw(this.ctx);
+    for (const enemyBullet of this.enemyBullets) {
+    enemyBullet.draw(this.ctx);
+    }
+
+    if (this.playerVisible) {
+      this.player.draw(this.ctx);
+    }
+
     this.drawExplosions();
     this.drawBonusMessage();
   }
 
   loop() {
-    if (!this.isRunning) {
+    if (!this.isRunning && this.explosions.length === 0) {
       return;
     }
 
@@ -353,6 +368,42 @@ export class Game {
 
     this.bonuses = this.bonuses.filter((bonus) => bonus.active);
   }
+  updateEnemyBullets() {
+    for (const enemy of this.enemies) {
+      if (enemy.constructor.name === "SideEnemy" && enemy.state === "attacking") {
+        enemy.shootTimer--;
+
+        if (enemy.shootTimer <= 0 && enemy.shotsFired < 3) {
+          this.enemyBullets.push(
+            new EnemyBullet(
+              enemy.x + enemy.width / 2,
+              enemy.y + enemy.height / 2,
+              enemy.direction
+            )
+          );
+
+          enemy.shotsFired++;
+          enemy.shootTimer = 25;
+        }
+      }
+    }
+
+    for (const bullet of this.enemyBullets) {
+      bullet.update();
+    }
+
+    this.enemyBullets = this.enemyBullets.filter((bullet) => bullet.active);
+  }
+  checkEnemyBulletPlayerCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const bullet of this.enemyBullets) {
+      if (isColliding(playerHitbox, bullet)) {
+        this.endGame();
+        break;
+      }
+    }
+  }
 
   tryDropBonus(enemy) {
     const roll = Math.random();
@@ -429,7 +480,21 @@ export class Game {
   }
 
   endGame() {
+    if (this.gameOver) {
+      return;
+    }
+
+    this.gameOver = true;
     this.isRunning = false;
+    this.playerVisible = false;
+
+    this.explosions.push({
+      x: this.player.x,
+      y: this.player.y + this.player.height / 2,
+      radius: 8,
+      life: 25
+    });
+
     this.messageElement.textContent = `Game Over — Score: ${this.score}`;
   }
 }
