@@ -8,6 +8,13 @@ import { Bonus, BONUS_TYPES } from "./bonuses.js";
 import { isColliding } from "./collision.js";
 import { SideEnemy } from "./sideEnemies.js";
 import { EnemyBullet } from "./enemyBullets.js";
+import { EyeBoss } from "./bosses.js";
+import { BossProjectile } from "./bossProjectiles.js";
+
+import {
+  DEV_MODE,
+  DEV_START_LEVEL
+} from "./config.js";
 
 export class Game {
   constructor(canvas, scoreElement, levelElement, messageElement) {
@@ -40,6 +47,14 @@ export class Game {
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
+    this.boss = null;
+    this.bossActive = false;
+    this.currentBossLevel = null;
+    this.defeatedBossLevels = new Set();
+    this.hasShield = false;
+    this.damageCooldown = 0;
+    this.bossProjectiles = [];
+
     this.gameOver = false;
     this.playerVisible = true;
 
@@ -49,8 +64,15 @@ export class Game {
 
   start() {
     this.score = 0;
-    this.level = 1;
-    this.frameCount = 0;
+   // this.level = 1;
+   // this.frameCount = 0;
+   //DEV MODE
+this.level = DEV_MODE ? DEV_START_LEVEL : 1;
+
+this.frameCount = DEV_MODE
+  ? (DEV_START_LEVEL - 1) * 1200
+  : 0;
+   //DEV MODE
 
     this.scoreElement.textContent = this.score;
     this.messageElement.textContent = "";
@@ -73,6 +95,14 @@ export class Game {
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
+    this.boss = null;
+    this.bossActive = false;
+    this.currentBossLevel = null;
+    this.defeatedBossLevels = new Set();
+    this.hasShield = false;
+    this.damageCooldown = 0;
+    this.bossProjectiles = [];
+
     this.isRunning = true;
     this.gameOver = false;
     this.playerVisible = true;
@@ -82,16 +112,26 @@ export class Game {
   }
 
   update() {
+    if (this.damageCooldown > 0) {
+      this.damageCooldown--;
+    }
     this.background.update();
     this.player.update();
     this.updateDifficulty();
 
     this.updateShooting();
     this.updateBullets();
-    this.updateEnemies();
+
+    if (this.bossActive) {
+      this.updateBoss();
+      this.checkBulletBossCollisions();
+    } else {
+      this.updateEnemies();
+      this.updateMeteors();
+    }
+
     this.updateEnemyBullets();
     this.checkEnemyBulletPlayerCollisions();
-    this.updateMeteors();
 
     this.checkBulletEnemyCollisions();
     this.checkBulletMeteorCollisions();
@@ -102,9 +142,11 @@ export class Game {
     this.checkPlayerBonusCollisions();
     this.updateBonusMessage();
 
+    this.updateBossProjectiles();
+    this.checkBossProjectilePlayerCollisions();
+
     this.updateExplosions();
   }
-
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -130,12 +172,19 @@ export class Game {
     enemyBullet.draw(this.ctx);
     }
 
+    if (this.boss) {
+      this.boss.draw(this.ctx);
+    }
     if (this.playerVisible) {
       this.player.draw(this.ctx);
+      if (this.hasShield && this.playerVisible) {
+        this.player.drawShield(this.ctx);
+      }
     }
 
     this.drawExplosions();
     this.drawBonusMessage();
+    this.drawBossProjectiles();
   }
 
   loop() {
@@ -150,6 +199,12 @@ export class Game {
   }
 
   updateDifficulty() {
+    if (this.bossActive) {
+      this.level = this.currentBossLevel;
+      this.levelElement.textContent = this.level;
+      return;
+    }
+
     this.frameCount++;
 
     if (this.frameCount % 10 === 0) {
@@ -157,8 +212,35 @@ export class Game {
       this.scoreElement.textContent = this.score;
     }
 
-    this.level = Math.floor(this.frameCount / 600) + 1;
+    this.level = Math.floor(this.frameCount / 1200) + 1;
     this.levelElement.textContent = this.level;
+
+    if (this.shouldStartBossFight(this.level)) {
+      this.startBossFight(this.level);
+    }
+  }
+// Method pour gérer le spawn des boss en fonction du level
+  shouldStartBossFight(level) {
+    return (
+      this.isBossLevel(level) &&
+      !this.defeatedBossLevels.has(level) &&
+      this.canCreateBoss(level)
+    );
+  }
+
+  isBossLevel(level) {
+    return level === 5 || level === 10 || level === 15;
+  }
+  canCreateBoss(level) {
+    return level === 5;
+  }
+
+  createBoss(level) {
+    if (level === 5) {
+      return new EyeBoss();
+    }
+
+    return null;
   }
 
   updateShooting() {
@@ -199,7 +281,7 @@ export class Game {
   updateEnemies() {
     this.enemySpawnTimer++;
 
-    const spawnRate = Math.max(35, 80 - this.level * 3);
+    const spawnRate = Math.max(45, 105 - this.level * 5);
 
     if (this.enemySpawnTimer >= spawnRate) {
       this.spawnEnemy();
@@ -332,10 +414,23 @@ export class Game {
 
     for (const enemy of this.enemies) {
       if (isColliding(playerHitbox, enemy)) {
-        this.endGame();
+        enemy.active = false;
+
+        this.explosions.push({
+          x: enemy.x + enemy.width / 2,
+          y: enemy.y + enemy.height / 2,
+          radius: 6,
+          life: 15
+        });
+
+        this.damagePlayer();
         break;
       }
     }
+
+    this.enemies = this.enemies.filter(
+      (enemy) => enemy.active
+    );
   }
 
   checkPlayerMeteorCollisions() {
@@ -343,10 +438,23 @@ export class Game {
 
     for (const meteor of this.meteors) {
       if (isColliding(playerHitbox, meteor)) {
-        this.endGame();
+        meteor.active = false;
+
+        this.explosions.push({
+          x: meteor.x + meteor.width / 2,
+          y: meteor.y + meteor.height / 2,
+          radius: 8,
+          life: 18
+        });
+
+        this.damagePlayer();
         break;
       }
     }
+
+    this.meteors = this.meteors.filter(
+      (meteor) => meteor.active
+    );
   }
 
   checkPlayerBonusCollisions() {
@@ -401,16 +509,21 @@ export class Game {
 
     for (const bullet of this.enemyBullets) {
       if (isColliding(playerHitbox, bullet)) {
-        this.endGame();
+        bullet.active = false;
+        this.damagePlayer();
         break;
       }
     }
+
+    this.enemyBullets = this.enemyBullets.filter(
+      (bullet) => bullet.active
+    );
   }
 
   tryDropBonus(enemy) {
     const roll = Math.random();
 
-    if (this.weaponLevel === 1 && roll < 0.08) {
+    if (this.level >= 6 && this.weaponLevel === 1 && roll < 0.08) {
       this.bonuses.push(
         new Bonus(
           enemy.x + enemy.width / 2,
@@ -420,7 +533,7 @@ export class Game {
       );
     }
 
-    if (this.weaponLevel === 2 && roll < 0.02) {
+    if (this.level >= 11 && this.weaponLevel === 2 && roll < 0.02) {
       this.bonuses.push(
         new Bonus(
           enemy.x + enemy.width / 2,
@@ -479,6 +592,184 @@ export class Game {
     this.ctx.textAlign = "center";
     this.ctx.fillText(this.bonusMessage, this.canvas.width / 2, 40);
     this.ctx.restore();
+  }
+
+   startBossFight(level) {
+    const boss = this.createBoss(level);
+
+    if (!boss) {
+      return;
+    }
+
+    this.boss = boss;
+    this.bossActive = true;
+    this.currentBossLevel = level;
+
+    this.enemies = [];
+    this.meteors = [];
+    this.enemyBullets = [];
+    this.bossProjectiles = [];
+
+    this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
+  }
+
+  updateBoss() {
+    if (!this.bossActive || !this.boss) {
+      return;
+    }
+
+    this.boss.update();
+
+    // La mort du boss est contrôlée à chaque frame.
+    if (!this.boss.active) {
+      this.finishBossFight();
+      return;
+    }
+
+    // Gestion des attaques du Boss 1.
+    if (
+      this.boss.state === "fighting" &&
+      this.boss.attackTimer <= 0
+    ) {
+      this.fireBossArc();
+
+      const healthRatio =
+        this.boss.health / this.boss.maxHealth;
+
+      if (healthRatio > 0.66) {
+        this.boss.attackTimer = 240;
+      } else if (healthRatio > 0.33) {
+        this.boss.attackTimer = 180;
+      } else {
+        this.boss.attackTimer = 120;
+      }
+    }
+  }
+
+  fireBossArc() {
+    const centerX = this.boss.x + this.boss.width / 2;
+    const centerY = this.boss.y + this.boss.height / 2;
+
+    const projectileCount = 13;
+    const startAngle = 0;
+    const endAngle = Math.PI;
+
+    for (let i = 0; i < projectileCount; i++) {
+      const ratio = i / (projectileCount - 1);
+      const angle = startAngle + ratio * (endAngle - startAngle);
+
+      this.bossProjectiles.push(
+        new BossProjectile(centerX, centerY, angle, 2.1)
+      );
+    }
+  }
+
+  finishBossFight() {
+    const defeatedLevel = this.currentBossLevel;
+
+    this.defeatedBossLevels.add(defeatedLevel);
+
+    this.bossActive = false;
+    this.currentBossLevel = null;
+    this.bossProjectiles = [];
+    this.boss = null;
+
+    this.score += 1000;
+    this.scoreElement.textContent = this.score;
+
+    if (defeatedLevel === 5) {
+      this.hasShield = true;
+      this.showBonusMessage("SHIELD ACQUIRED");
+    }
+
+    if (defeatedLevel === 15) {
+      this.winGame();
+      return;
+    }
+
+    this.level = defeatedLevel + 1;
+    this.frameCount = defeatedLevel * 1200;
+    this.levelElement.textContent = this.level;
+  }
+  checkBulletBossCollisions() {
+    if (!this.bossActive || !this.boss) {
+      return;
+    }
+
+    for (const bullet of this.bullets) {
+      if (isColliding(bullet, this.boss)) {
+        bullet.active = false;
+        this.boss.takeDamage();
+
+        this.explosions.push({
+          x: bullet.x,
+          y: bullet.y,
+          radius: 3,
+          life: 8
+        });
+      }
+    }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
+  }
+
+  updateBossProjectiles() {
+    for (const projectile of this.bossProjectiles) {
+      projectile.update();
+    }
+
+    this.bossProjectiles = this.bossProjectiles.filter((projectile) => projectile.active);
+  }
+
+  drawBossProjectiles() {
+    for (const projectile of this.bossProjectiles) {
+      projectile.draw(this.ctx);
+    }
+  }
+
+  checkBossProjectilePlayerCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const projectile of this.bossProjectiles) {
+      if (isColliding(playerHitbox, projectile)) {
+        projectile.active = false;
+        this.damagePlayer();
+        break;
+      }
+    }
+    this.bossProjectiles = this.bossProjectiles.filter(
+      (projectile) => projectile.active
+    );
+  }
+
+  damagePlayer() {
+    if (this.damageCooldown > 0) {
+      return;
+    }
+
+    if (this.hasShield) {
+      this.hasShield = false;
+      this.showBonusMessage("SHIELD LOST");
+
+      this.explosions.push({
+        x: this.player.x,
+        y: this.player.y + this.player.height / 2,
+        radius: 6,
+        life: 12
+      });
+
+      return;
+    }
+
+    this.endGame();
+  }
+
+  winGame() {
+    this.isRunning = false;
+    this.gameOver = true;
+
+    this.messageElement.textContent =
+      `Victory — Final Score: ${this.score}`;
   }
 
   endGame() {

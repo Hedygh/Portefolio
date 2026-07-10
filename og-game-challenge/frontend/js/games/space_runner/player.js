@@ -167,4 +167,37 @@ export class Player {
 
     ctx.restore();
   }
+  
+  drawShield(ctx) {
+    ctx.save();
+
+    ctx.strokeStyle = "#00ccff";
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.65;
+
+    ctx.beginPath();
+    ctx.arc(
+      this.x,
+      this.y + this.height / 2,
+      this.width * 0.9,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = "#00ccff";
+
+    ctx.beginPath();
+    ctx.arc(
+      this.x,
+      this.y + this.height / 2,
+      this.width * 0.9,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.restore();
+  }
 }
