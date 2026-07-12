@@ -8,8 +8,10 @@ import { Bonus, BONUS_TYPES } from "./bonuses.js";
 import { isColliding } from "./collision.js";
 import { SideEnemy } from "./sideEnemies.js";
 import { EnemyBullet } from "./enemyBullets.js";
-import { EyeBoss } from "./bosses.js";
+import { EyeBoss, WormBoss } from "./bosses.js";
 import { BossProjectile } from "./bossProjectiles.js";
+import { SteelEyeEnemy } from "./steelEyeEnemy.js";
+import { FinalBossBackground } from "./finalBossBackground.js";
 
 import {
   DEV_MODE,
@@ -27,6 +29,7 @@ export class Game {
 
     this.player = new Player();
     this.background = new StarBackground();
+    this.finalBossBackground = new FinalBossBackground();
 
     this.bullets = [];
     this.enemies = [];
@@ -34,6 +37,7 @@ export class Game {
     this.explosions = [];
     this.bonuses = [];
     this.enemyBullets = [];
+    this.steelEyeEnemies = [];
 
     this.score = 0;
     this.level = 1;
@@ -79,6 +83,7 @@ this.frameCount = DEV_MODE
     this.levelElement.textContent = this.level;
 
     this.player.reset();
+    this.finalBossBackground.reset();
 
     this.bullets = [];
     this.enemies = [];
@@ -86,6 +91,7 @@ this.frameCount = DEV_MODE
     this.explosions = [];
     this.bonuses = [];
     this.enemyBullets = [];
+    this.steelEyeEnemies = [];
 
     this.shootCooldown = 0;
     this.enemySpawnTimer = 0;
@@ -116,6 +122,9 @@ this.frameCount = DEV_MODE
       this.damageCooldown--;
     }
     this.background.update();
+    if (this.level === 15 || this.currentBossLevel === 15) {
+      this.finalBossBackground.update();
+    }
     this.player.update();
     this.updateDifficulty();
 
@@ -124,10 +133,19 @@ this.frameCount = DEV_MODE
 
     if (this.bossActive) {
       this.updateBoss();
-      this.checkBulletBossCollisions();
+
+      if (this.currentBossLevel === 5) {
+        this.checkBulletBossCollisions();
+      }
+
+      if (this.currentBossLevel === 10) {
+        this.checkBulletWormBossCollisions();
+        this.checkPlayerWormBossCollisions();
+      }
     } else {
       this.updateEnemies();
       this.updateMeteors();
+      this.updateSteelEyeEnemies();
     }
 
     this.updateEnemyBullets();
@@ -137,6 +155,8 @@ this.frameCount = DEV_MODE
     this.checkBulletMeteorCollisions();
     this.checkPlayerEnemyCollisions();
     this.checkPlayerMeteorCollisions();
+    this.checkBulletSteelEyeCollisions();
+    this.checkPlayerSteelEyeCollisions();
 
     this.updateBonuses();
     this.checkPlayerBonusCollisions();
@@ -151,12 +171,18 @@ this.frameCount = DEV_MODE
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.background.draw(this.ctx);
+    if (this.level === 15 || this.currentBossLevel === 15) {
+      this.finalBossBackground.draw(this.ctx);
+    }
 
     for (const bullet of this.bullets) {
       bullet.draw(this.ctx);
     }
 
     for (const enemy of this.enemies) {
+      enemy.draw(this.ctx);
+    }
+    for (const enemy of this.steelEyeEnemies) {
       enemy.draw(this.ctx);
     }
 
@@ -213,6 +239,10 @@ this.frameCount = DEV_MODE
     }
 
     this.level = Math.floor(this.frameCount / 1200) + 1;
+    // Safe keep for dev mode last boss
+    if (this.level >= 15) {
+      this.level = 15;
+    }
     this.levelElement.textContent = this.level;
 
     if (this.shouldStartBossFight(this.level)) {
@@ -232,14 +262,16 @@ this.frameCount = DEV_MODE
     return level === 5 || level === 10 || level === 15;
   }
   canCreateBoss(level) {
-    return level === 5;
+    return level === 5 || level == 10;
   }
 
   createBoss(level) {
     if (level === 5) {
       return new EyeBoss();
     }
-
+    if (level === 10) {
+      return new WormBoss();
+    }
     return null;
   }
 
@@ -296,6 +328,11 @@ this.frameCount = DEV_MODE
   }
 
   updateMeteors() {
+    if (this.level >= 11) {
+        this.meteors = [];
+        return;
+    }
+    
     this.meteorSpawnTimer++;
 
     const spawnRate = Math.max(90, 180 - this.level * 8);
@@ -312,6 +349,16 @@ this.frameCount = DEV_MODE
     this.meteors = this.meteors.filter((meteor) => meteor.active);
   }
 
+  updateSteelEyeEnemies() {
+    for (const enemy of this.steelEyeEnemies) {
+      enemy.update(this.player);
+    }
+
+    this.steelEyeEnemies =
+      this.steelEyeEnemies.filter(
+        (enemy) => enemy.active
+      );
+  }
   updateBonuses() {
     for (const bonus of this.bonuses) {
       bonus.update();
@@ -347,10 +394,26 @@ this.frameCount = DEV_MODE
       return;
     }
 
-    if (roll < 0.55) {
-      this.enemies.push(new Enemy(this.level));
-    } else {
-      this.enemies.push(new SideEnemy(this.level));
+    if (this.level < 11) {
+      if (roll < 0.55) {
+        this.enemies.push(new Enemy(this.level));
+      } else {
+        this.enemies.push(new SideEnemy(this.level));
+      }
+
+      return;
+    }
+
+    if (this.level <= 14) {
+      if (roll < 0.35) {
+        this.enemies.push(new Enemy(this.level));
+      } else if (roll < 0.50) {
+        this.enemies.push(new SideEnemy(this.level));
+      } else {
+        this.steelEyeEnemies.push(
+          new SteelEyeEnemy(this.level)
+        );
+      }
     }
   }
 
@@ -457,6 +520,72 @@ this.frameCount = DEV_MODE
     );
   }
 
+  checkPlayerSteelEyeCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const enemy of this.steelEyeEnemies) {
+      if (isColliding(playerHitbox, enemy)) {
+        enemy.active = false;
+
+        this.explosions.push({
+          x: enemy.x + enemy.width / 2,
+          y: enemy.y + enemy.height / 2,
+          radius: 8,
+          life: 18
+        });
+
+        this.damagePlayer();
+        break;
+      }
+    }
+
+    this.steelEyeEnemies =
+      this.steelEyeEnemies.filter(
+        (enemy) => enemy.active
+      );
+  }
+  checkBulletSteelEyeCollisions() {
+    for (const bullet of this.bullets) {
+      for (const enemy of this.steelEyeEnemies) {
+        if (isColliding(bullet, enemy)) {
+          bullet.active = false;
+          enemy.takeDamage();
+
+          this.explosions.push({
+            x: bullet.x,
+            y: bullet.y,
+            radius: 3,
+            life: 8
+          });
+
+          if (!enemy.active) {
+            this.score += 250;
+            this.scoreElement.textContent = this.score;
+
+            this.explosions.push({
+              x: enemy.x + enemy.width / 2,
+              y: enemy.y + enemy.height / 2,
+              radius: 8,
+              life: 18
+            });
+
+            this.tryDropBonus(enemy);
+          }
+
+          break;
+        }
+      }
+    }
+
+    this.bullets = this.bullets.filter(
+      (bullet) => bullet.active
+    );
+
+    this.steelEyeEnemies =
+      this.steelEyeEnemies.filter(
+        (enemy) => enemy.active
+      );
+  }
   checkPlayerBonusCollisions() {
     const playerHitbox = this.player.getHitbox();
 
@@ -609,6 +738,7 @@ this.frameCount = DEV_MODE
     this.meteors = [];
     this.enemyBullets = [];
     this.bossProjectiles = [];
+    this.steelEyeEnemies = [];
 
     this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
   }
@@ -681,7 +811,14 @@ this.frameCount = DEV_MODE
       this.hasShield = true;
       this.showBonusMessage("SHIELD ACQUIRED");
     }
-
+    if (defeatedLevel === 10) {
+      if (!this.hasShield) {
+        this.hasShield = true;
+        this.showBonusMessage("SHIELD ACQUIRED");
+      } else {
+        this.showBonusMessage("SHIELD PRESERVED");
+      }
+    }
     if (defeatedLevel === 15) {
       this.winGame();
       return;
@@ -741,7 +878,69 @@ this.frameCount = DEV_MODE
       (projectile) => projectile.active
     );
   }
+  getWormSegmentHitbox(segment) {
+    return {
+      x: segment.x - segment.radius,
+      y: segment.y - segment.radius,
+      width: segment.radius * 2,
+      height: segment.radius * 2
+    };
+  }
+  checkBulletWormBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 10
+    ) {
+      return;
+    }
 
+    for (const bullet of this.bullets) {
+      for (const segment of this.boss.segments) {
+        const segmentHitbox =
+          this.getWormSegmentHitbox(segment);
+
+        if (isColliding(bullet, segmentHitbox)) {
+          bullet.active = false;
+          this.boss.takeDamage();
+
+          this.explosions.push({
+            x: bullet.x,
+            y: bullet.y,
+            radius: 3,
+            life: 8
+          });
+
+          break;
+        }
+      }
+    }
+
+    this.bullets = this.bullets.filter(
+      (bullet) => bullet.active
+    );
+  }
+  checkPlayerWormBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 10
+    ) {
+      return;
+    }
+
+    const playerHitbox = this.player.getHitbox();
+
+    for (const segment of this.boss.segments) {
+      const segmentHitbox =
+        this.getWormSegmentHitbox(segment);
+
+      if (isColliding(playerHitbox, segmentHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
   damagePlayer() {
     if (this.damageCooldown > 0) {
       return;

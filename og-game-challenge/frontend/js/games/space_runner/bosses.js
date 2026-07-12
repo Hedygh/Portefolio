@@ -109,7 +109,7 @@ export class EyeBoss {
 
 export class WormBoss {
   constructor() {
-    this.segmentCount = 42;
+    this.segmentCount = 45;
     this.segmentSpacing = 28;
 
     this.headRadius = 30;
@@ -125,8 +125,8 @@ export class WormBoss {
     this.speed = 1.7;
     this.active = true;
 
-    this.health = 260;
-    this.maxHealth = 260;
+    this.health = 600;
+    this.maxHealth = 600;
 
     this.state = "entering";
 
@@ -134,10 +134,18 @@ export class WormBoss {
     this.segments = [];
 
     this.targetTimer = 0;
+    this.angle = Math.atan2(
+      this.targetY - this.y,
+      this.targetX - this.x
+    );
+    this.maxTurnSpeed = 0.026;
+    this.curveDirection = Math.random() < 0.5 ? -1 : 1;
+    this.curveStrength = 0.35;
 
     this.initializePath();
   }
 
+  // point de départ a suivre pour la tete
   initializePath() {
     const requiredPathLength =
       this.segmentCount * this.segmentSpacing;
@@ -168,11 +176,11 @@ export class WormBoss {
     const healthRatio = this.health / this.maxHealth;
 
     if (healthRatio > 0.66) {
-      this.speed = 1.7;
+      this.speed = 2.4;
     } else if (healthRatio > 0.33) {
-      this.speed = 2.3;
+      this.speed = 3.1;
     } else {
-      this.speed = 3;
+      this.speed = 4;
     }
   }
 
@@ -213,6 +221,11 @@ export class WormBoss {
     this.targetX = newX;
     this.targetY = newY;
 
+    if (Math.random() < 0.45) {
+      this.curveDirection *= -1;
+    }
+
+    this.curveStrength = 0.2 + Math.random() * 0.45;
     this.targetTimer =
       180 + Math.floor(Math.random() * 180);
   }
@@ -221,14 +234,35 @@ export class WormBoss {
     const dx = this.targetX - this.x;
     const dy = this.targetY - this.y;
 
-    const distance = Math.hypot(dx, dy);
+    const desiredAngle = Math.atan2(dy, dx);
 
-    if (distance === 0) {
-      return;
+    let angleDifference = desiredAngle - this.angle;
+
+    // Ramène l'écart entre -PI et PI.
+    while (angleDifference > Math.PI) {
+      angleDifference -= Math.PI * 2;
     }
 
-    this.x += (dx / distance) * this.speed;
-    this.y += (dy / distance) * this.speed;
+    while (angleDifference < -Math.PI) {
+      angleDifference += Math.PI * 2;
+    }
+
+    // Le boss ne peut pas changer brutalement de direction.
+    const limitedTurn = Math.max(
+      -this.maxTurnSpeed,
+      Math.min(this.maxTurnSpeed, angleDifference)
+    );
+
+    this.angle += limitedTurn;
+
+    // Courbure permanente légère donnant un mouvement circulaire.
+    this.angle +=
+      this.curveDirection *
+      this.curveStrength *
+      this.maxTurnSpeed;
+
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
   }
 
   updatePath() {
@@ -237,8 +271,7 @@ export class WormBoss {
       y: this.y
     });
 
-    const maxPathLength =
-      this.segmentCount * this.segmentSpacing + 1;
+    const maxPathLength = 1400;
 
     if (this.path.length > maxPathLength) {
       this.path.length = maxPathLength;
@@ -249,12 +282,8 @@ export class WormBoss {
     this.segments = [];
 
     for (let i = 0; i < this.segmentCount; i++) {
-      const pathIndex = Math.min(
-        i * this.segmentSpacing,
-        this.path.length - 1
-      );
-
-      const position = this.path[pathIndex];
+      const targetDistance = i * this.segmentSpacing;
+      const position = this.getPathPosition(targetDistance);
 
       this.segments.push({
         x: position.x,
@@ -265,6 +294,53 @@ export class WormBoss {
     }
   }
 
+  getPathPosition(targetDistance) {
+    if (this.path.length === 0) {
+      return {
+        x: this.x,
+        y: this.y
+      };
+    }
+
+    let travelledDistance = 0;
+
+    for (let i = 1; i < this.path.length; i++) {
+      const previous = this.path[i - 1];
+      const current = this.path[i];
+
+      const sectionDistance = Math.hypot(
+        current.x - previous.x,
+        current.y - previous.y
+      );
+
+      if (
+        travelledDistance + sectionDistance >=
+        targetDistance
+      ) {
+        const remainingDistance =
+          targetDistance - travelledDistance;
+
+        const ratio =
+          sectionDistance === 0
+            ? 0
+            : remainingDistance / sectionDistance;
+
+        return {
+          x:
+            previous.x +
+            (current.x - previous.x) * ratio,
+
+          y:
+            previous.y +
+            (current.y - previous.y) * ratio
+        };
+      }
+
+      travelledDistance += sectionDistance;
+    }
+
+    return this.path[this.path.length - 1];
+  }
   getSegmentRadius(index) {
     if (index === 0) {
       return this.headRadius;
