@@ -31,6 +31,7 @@ export class Game {
     this.player = new Player();
     this.background = new StarBackground();
     this.finalBossBackground = new FinalBossBackground();
+    this.lastDragonPhase = 1;
 
     this.bullets = [];
     this.enemies = [];
@@ -49,7 +50,7 @@ export class Game {
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = 1;
+    this.weaponLevel = DEV_MODE ? 3 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -100,7 +101,7 @@ this.frameCount = DEV_MODE
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = 1;
+    this.weaponLevel = DEV_MODE ? 3 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -145,7 +146,17 @@ this.frameCount = DEV_MODE
         this.checkBulletWormBossCollisions();
         this.checkPlayerWormBossCollisions();
       }
+
       if (this.currentBossLevel === 15) {
+        if (
+          this.lastDragonPhase === 1 &&
+          this.boss.phase === 2
+        ) {
+          this.dragonFireballs = [];
+        }
+
+        this.lastDragonPhase = this.boss.phase;
+
         this.updateDragonPhaseOne();
         this.checkBulletDragonBossCollisions();
       }
@@ -1039,8 +1050,12 @@ this.frameCount = DEV_MODE
       !this.bossActive ||
       !this.boss ||
       this.currentBossLevel !== 15 ||
-      this.boss.state !== "fighting"
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 1
     ) {
+      return;
+    }
+    if (this.boss.phase !== 1) {
       return;
     }
 

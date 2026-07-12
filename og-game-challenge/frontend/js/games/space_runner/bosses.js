@@ -562,6 +562,13 @@ export class DragonBoss {
 
     this.mouthTimer = 120;
     this.mouthState = "closed";
+
+    this.phase = 1;
+
+    this.centerTargetX =
+      CANVAS_WIDTH / 2 - this.width / 2;
+
+    this.centerTargetY = 55;
   }
 
   update() {
@@ -571,16 +578,32 @@ export class DragonBoss {
     this.updateEyes();
     this.updateMouth();
 
+    if (
+      this.phase === 1 &&
+      this.health <= this.maxHealth * 0.5
+    ) {
+      this.phase = 2;
+    }
+
     if (this.state === "entering") {
       this.updateEntering();
       return;
     }
 
     if (this.state === "fighting") {
-      this.updateHorizontalMovement();
 
-      if (this.attackTimer > 0) {
-        this.attackTimer--;
+      if (this.phase === 1) {
+
+          this.updateHorizontalMovement();
+
+          if (this.attackTimer > 0) {
+              this.attackTimer--;
+          }
+
+      } else if (this.phase === 2) {
+
+          this.updatePhaseTwoPosition();
+
       }
     }
   }
@@ -611,7 +634,28 @@ export class DragonBoss {
       this.direction = -1;
     }
   }
+  updatePhaseTwoPosition() {
 
+      const dx =
+          this.centerTargetX - this.x;
+
+      const dy =
+          this.centerTargetY - this.y;
+
+      const distance =
+          Math.hypot(dx, dy);
+
+      if (distance < 2) {
+
+          this.x = this.centerTargetX;
+          this.y = this.centerTargetY;
+
+          return;
+      }
+
+      this.x += dx * 0.05;
+      this.y += dy * 0.05;
+  }
   updateWings() {
     this.wingAngle =
       Math.sin(this.animationFrame * 0.045) * 0.22;
