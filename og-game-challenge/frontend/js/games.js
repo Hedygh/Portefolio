@@ -15,7 +15,7 @@ const GAME_UI = {
   },
   "Space Runner": {
     slug: "space-runner",
-    icon: "⚡",
+    image: "../assets/SpaceRunner.png",
     available: true,
     page: "space_runner.html"
   }
@@ -41,12 +41,30 @@ async function renderGames() {
         <div class="game-card__visual">
           ${
             ui.preview
-              ? `<video class="game-card__preview" muted loop playsinline preload="metadata">
-                   <source src="${ui.preview}" type="video/mp4">
-                 </video>`
-              : `<span class="game-card__icon">⚡</span>`
+              ? `
+                <video
+                  class="game-card__preview"
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                >
+                  <source src="${ui.preview}" type="video/mp4">
+                </video>
+              `
+              : ui.image
+                ? `
+                  <img
+                    class="game-card__preview"
+                    src="${ui.image}"
+                    alt="${game.name}"
+                  >
+                `
+                : `
+                  <span class="game-card__icon">⚡</span>
+                `
           }
-</div>
+        </div>
         <div class="game-card__body">
           <h2 class="game-card__name">${game.name}</h2>
           <p class="game-card__desc">${game.description || "Beat the score and climb the leaderboard."}</p>

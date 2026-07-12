@@ -8,4 +8,4 @@ export const PLAYER_HEIGHT = 54;
 export const STAR_COUNT = 90;
 
 export const DEV_MODE = false;
-export const DEV_START_LEVEL = 15;
+export const DEV_START_LEVEL = 10;

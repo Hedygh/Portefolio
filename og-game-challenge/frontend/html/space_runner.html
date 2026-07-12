@@ -1,28 +1,137 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Space Runner</title>
+  <title>Space Runner — OG Game Challenge</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/games.css" />
   <link rel="stylesheet" href="../css/space_runner.css" />
 </head>
-<body>
-  <main class="game-page">
-    <h1>SPACE RUNNER</h1>
 
-    <div class="game-hud">
-      <span>Score: <strong id="score">0</strong></span>
-      <span>Level: <strong id="level">1</strong></span>
-      <button id="startBtn">Start</button>
+<body>
+  <nav class="navbar">
+    <div class="navbar__logo">
+      <span class="navbar__logo-og">OG</span>
+      <span class="navbar__logo-sub">CHALLENGE</span>
     </div>
 
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <ul class="navbar__links">
+      <li>
+        <a href="index.html" class="navbar__link">HOME</a>
+      </li>
 
-    <p id="gameMessage">Press Start</p>
+      <li>
+        <a
+          href="games.html"
+          class="navbar__link navbar__link--active"
+        >
+          CHALLENGES
+        </a>
+      </li>
+
+      <li>
+        <a href="leaderboard.html" class="navbar__link">
+          LEADERBOARD
+        </a>
+      </li>
+    </ul>
+
+    <div id="authArea"></div>
+  </nav>
+
+  <main class="games">
+    <div class="games__header">
+      <h1 class="games__title">
+        SPACE <span>RUNNER</span>
+      </h1>
+
+      <p class="games__sub">
+        SURVIVE. DEFEAT THE BOSSES. REACH THE PORTAL.
+      </p>
+    </div>
+
+    <div class="game-layout space-runner-layout">
+      <div class="game-hud">
+        <span>
+          SCORE:
+          <strong id="score">0</strong>
+        </span>
+
+        <span>
+          LEVEL:
+          <strong id="level">1</strong>
+        </span>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas
+          id="gameCanvas"
+          width="800"
+          height="500"
+        ></canvas>
+      </div>
+
+      <p id="gameMessage" class="status-text">
+        PRESS START
+      </p>
+
+      <div class="game-actions">
+        <button
+          id="startBtn"
+          class="game-card__btn game-card__btn--play"
+        >
+          START
+        </button>
+        
+        <button
+            id="expandBtn"
+            class="game-card__btn game-card__btn--board"
+        >
+            EXPAND
+        </button>
+
+        <button
+            id="exitExpandBtn"
+            class="game-card__btn game-card__btn--board"
+            hidden
+        >
+            EXIT
+        </button>
+
+        <a
+          class="game-card__btn game-card__btn--board"
+          href="leaderboard.html?game=space-runner"
+        >
+          LEADERBOARD
+        </a>
+
+        <a
+          class="game-card__btn game-card__btn--board"
+          href="games.html"
+        >
+          BACK
+        </a>
+      </div>
+    </div>
   </main>
 
-  <script type="module" src="../js/games/space_runner/main.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/session.js"></script>
+  <script src="../js/score-adapter.js"></script>
+
+  <script
+    type="module"
+    src="../js/games/space_runner/main.js"
+  ></script>
 </body>
 </html>

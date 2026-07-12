@@ -1399,6 +1399,7 @@ this.frameCount = DEV_MODE
 
     this.messageElement.textContent =
       `Victory — Final Score: ${this.score}`;
+    window.handleGameOver("space-runner", this.score);
   }
 
   endGame() {
@@ -1418,6 +1419,7 @@ this.frameCount = DEV_MODE
     });
 
     this.messageElement.textContent = `Game Over — Score: ${this.score}`;
+    window.handleGameOver("space-runner", this.score);
   }
   drawVictoryTitle() {
     if (!this.victoryTitleVisible) {
