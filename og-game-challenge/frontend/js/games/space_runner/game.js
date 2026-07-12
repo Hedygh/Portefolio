@@ -8,10 +8,11 @@ import { Bonus, BONUS_TYPES } from "./bonuses.js";
 import { isColliding } from "./collision.js";
 import { SideEnemy } from "./sideEnemies.js";
 import { EnemyBullet } from "./enemyBullets.js";
-import { EyeBoss, WormBoss } from "./bosses.js";
+import { EyeBoss, WormBoss, DragonBoss } from "./bosses.js";
 import { BossProjectile } from "./bossProjectiles.js";
 import { SteelEyeEnemy } from "./steelEyeEnemy.js";
 import { FinalBossBackground } from "./finalBossBackground.js";
+import { DragonFireball } from "./dragonFireballs.js";
 
 import {
   DEV_MODE,
@@ -38,6 +39,7 @@ export class Game {
     this.bonuses = [];
     this.enemyBullets = [];
     this.steelEyeEnemies = [];
+    this.dragonFireballs = [];
 
     this.score = 0;
     this.level = 1;
@@ -92,6 +94,7 @@ this.frameCount = DEV_MODE
     this.bonuses = [];
     this.enemyBullets = [];
     this.steelEyeEnemies = [];
+    this.dragonFireballs = [];
 
     this.shootCooldown = 0;
     this.enemySpawnTimer = 0;
@@ -142,6 +145,10 @@ this.frameCount = DEV_MODE
         this.checkBulletWormBossCollisions();
         this.checkPlayerWormBossCollisions();
       }
+      if (this.currentBossLevel === 15) {
+        this.updateDragonPhaseOne();
+        this.checkBulletDragonBossCollisions();
+      }
     } else {
       this.updateEnemies();
       this.updateMeteors();
@@ -166,6 +173,8 @@ this.frameCount = DEV_MODE
     this.checkBossProjectilePlayerCollisions();
 
     this.updateExplosions();
+    this.updateDragonFireballs();
+    this.checkDragonFireballPlayerCollisions();
   }
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -200,6 +209,9 @@ this.frameCount = DEV_MODE
 
     if (this.boss) {
       this.boss.draw(this.ctx);
+    }
+    for (const fireball of this.dragonFireballs) {
+      fireball.draw(this.ctx);
     }
     if (this.playerVisible) {
       this.player.draw(this.ctx);
@@ -262,7 +274,7 @@ this.frameCount = DEV_MODE
     return level === 5 || level === 10 || level === 15;
   }
   canCreateBoss(level) {
-    return level === 5 || level == 10;
+    return level === 5 || level == 10 || level == 15;
   }
 
   createBoss(level) {
@@ -271,6 +283,9 @@ this.frameCount = DEV_MODE
     }
     if (level === 10) {
       return new WormBoss();
+    }
+    if (level == 15) {
+      return new DragonBoss();
     }
     return null;
   }
@@ -758,6 +773,7 @@ this.frameCount = DEV_MODE
 
     // Gestion des attaques du Boss 1.
     if (
+      this.currentBossLevel == 5 &&
       this.boss.state === "fighting" &&
       this.boss.attackTimer <= 0
     ) {
@@ -940,6 +956,122 @@ this.frameCount = DEV_MODE
         break;
       }
     }
+  }
+  checkBulletDragonBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15
+    ) {
+      return;
+    }
+
+    const dragonHitbox =
+      this.getDragonHitbox();
+
+    for (const bullet of this.bullets) {
+      if (
+        isColliding(
+          bullet,
+          dragonHitbox
+        )
+      ) {
+        bullet.active = false;
+        this.boss.takeDamage();
+
+        this.explosions.push({
+          x: bullet.x,
+          y: bullet.y,
+          radius: 3,
+          life: 8
+        });
+      }
+    }
+
+    this.bullets = this.bullets.filter(
+      (bullet) => bullet.active
+    );
+  }
+  checkDragonFireballPlayerCollisions() {
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const fireball of this.dragonFireballs) {
+      const fireballHitbox =
+        fireball.getHitbox();
+
+      if (
+        isColliding(
+          playerHitbox,
+          fireballHitbox
+        )
+      ) {
+        this.damagePlayer();
+
+        if (fireball.state === "flying") {
+          fireball.state = "burning";
+          fireball.vx = 0;
+          fireball.vy = 0;
+          fireball.radius = 16;
+          fireball.updateHitbox();
+        }
+
+        break;
+      }
+    }
+  }
+  getDragonHitbox() {
+    return {
+      x:
+        this.boss.x +
+        this.boss.width / 2 -
+        48,
+
+      y:
+        this.boss.y + 45,
+
+      width: 96,
+      height: 115
+    };
+  }
+  updateDragonPhaseOne() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting"
+    ) {
+      return;
+    }
+
+    if (this.boss.attackTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    this.dragonFireballs.push(
+      new DragonFireball(
+        mouth.x,
+        mouth.y,
+        this.player.x,
+        this.player.y
+      )
+    );
+
+    this.boss.attackTimer = 110;
+  }
+
+  updateDragonFireballs() {
+    for (const fireball of this.dragonFireballs) {
+      fireball.update();
+    }
+
+    this.dragonFireballs =
+      this.dragonFireballs.filter(
+        (fireball) => fireball.active
+      );
   }
   damagePlayer() {
     if (this.damageCooldown > 0) {

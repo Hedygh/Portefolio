@@ -530,3 +530,788 @@ export class WormBoss {
     ctx.restore();
   }
 }
+
+export class DragonBoss {
+  constructor() {
+    this.width = 300;
+    this.height = 145;
+    this.renderScale = 0.7;
+
+    this.x = CANVAS_WIDTH / 2 - this.width / 2;
+    this.y = -this.height;
+
+    this.targetY = 40;
+
+    this.speed = 1;
+    this.horizontalSpeed = 1.25;
+    this.direction = 1;
+
+    this.active = true;
+
+    this.health = 700;
+    this.maxHealth = 700;
+    this.attackTimer = 110;
+    this.state = "entering";
+    this.phase = 1;
+
+    this.animationFrame = 0;
+
+    this.wingAngle = 0;
+    this.mouthOpen = 0;
+    this.eyeGlow = 0;
+
+    this.mouthTimer = 120;
+    this.mouthState = "closed";
+  }
+
+  update() {
+    this.animationFrame++;
+
+    this.updateWings();
+    this.updateEyes();
+    this.updateMouth();
+
+    if (this.state === "entering") {
+      this.updateEntering();
+      return;
+    }
+
+    if (this.state === "fighting") {
+      this.updateHorizontalMovement();
+
+      if (this.attackTimer > 0) {
+        this.attackTimer--;
+      }
+    }
+  }
+
+  updateEntering() {
+    this.y += this.speed;
+
+    if (this.y >= this.targetY) {
+      this.y = this.targetY;
+      this.state = "fighting";
+    }
+  }
+
+  updateHorizontalMovement() {
+    this.x += this.horizontalSpeed * this.direction;
+
+    const leftLimit = 25;
+    const rightLimit =
+      CANVAS_WIDTH - this.width - 25;
+
+    if (this.x <= leftLimit) {
+      this.x = leftLimit;
+      this.direction = 1;
+    }
+
+    if (this.x >= rightLimit) {
+      this.x = rightLimit;
+      this.direction = -1;
+    }
+  }
+
+  updateWings() {
+    this.wingAngle =
+      Math.sin(this.animationFrame * 0.045) * 0.22;
+  }
+
+  updateEyes() {
+    this.eyeGlow =
+      0.75 +
+      Math.sin(this.animationFrame * 0.08) * 0.25;
+  }
+
+  updateMouth() {
+    this.mouthTimer--;
+
+    if (
+      this.mouthState === "closed" &&
+      this.mouthTimer <= 0
+    ) {
+      this.mouthState = "opening";
+    }
+
+    if (this.mouthState === "opening") {
+      this.mouthOpen += 0.035;
+
+      if (this.mouthOpen >= 1) {
+        this.mouthOpen = 1;
+        this.mouthState = "open";
+        this.mouthTimer = 35;
+      }
+    }
+
+    if (this.mouthState === "open") {
+      this.mouthTimer--;
+
+      if (this.mouthTimer <= 0) {
+        this.mouthState = "closing";
+      }
+    }
+
+    if (this.mouthState === "closing") {
+      this.mouthOpen -= 0.035;
+
+      if (this.mouthOpen <= 0) {
+        this.mouthOpen = 0;
+        this.mouthState = "closed";
+        this.mouthTimer =
+          100 + Math.floor(Math.random() * 100);
+      }
+    }
+  }
+
+  getMouthPosition() {
+    const centerX =
+      this.x + this.width / 2;
+
+    const centerY =
+      this.y + 105;
+
+    return {
+      x: centerX,
+      y:
+        centerY +
+        48 * this.renderScale
+    };
+  }
+
+  takeDamage() {
+    this.health--;
+
+    if (this.health <= 0) {
+      this.active = false;
+    }
+  }
+
+  draw(ctx) {
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + 105;
+
+    ctx.save();
+
+    ctx.translate(centerX, centerY);
+
+    ctx.scale(
+      this.renderScale,
+      this.renderScale
+    );
+    this.drawWings(ctx);
+    this.drawBody(ctx);
+    this.drawArms(ctx);
+    this.drawHead(ctx);
+
+    ctx.restore();
+  }
+
+  drawWings(ctx) {
+    this.drawWing(ctx, -1);
+    this.drawWing(ctx, 1);
+  }
+
+  drawWing(ctx, side) {
+    ctx.save();
+
+    ctx.scale(side, 1);
+
+    /*
+    * La rotation est légère :
+    * la base reste stable, l'extrémité semble battre.
+    */
+    ctx.rotate(this.wingAngle * 0.45);
+
+    const gradient = ctx.createLinearGradient(
+      35,
+      0,
+      205,
+      -30
+    );
+
+    gradient.addColorStop(0, "#174a78");
+    gradient.addColorStop(0.45, "#0d3158");
+    gradient.addColorStop(1, "#071a33");
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = "#568dbd";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    // Base supérieure, très large près du corps.
+    ctx.moveTo(38, -25);
+
+    ctx.quadraticCurveTo(
+      78,
+      -77,
+      134,
+      -83
+    );
+
+    // Long bord supérieur qui s'affine.
+    ctx.quadraticCurveTo(
+      177,
+      -87,
+      207,
+      -64
+    );
+
+    // Pointe extérieure crochue.
+    ctx.quadraticCurveTo(
+      220,
+      -49,
+      207,
+      -25
+    );
+
+    ctx.quadraticCurveTo(
+      201,
+      -9,
+      190,
+      5
+    );
+
+    // Bas de l'aile : plusieurs creux.
+    ctx.quadraticCurveTo(
+      180,
+      25,
+      169,
+      38
+    );
+
+    ctx.quadraticCurveTo(
+      157,
+      15,
+      143,
+      10
+    );
+
+    ctx.quadraticCurveTo(
+      135,
+      39,
+      119,
+      54
+    );
+
+    ctx.quadraticCurveTo(
+      105,
+      24,
+      90,
+      17
+    );
+
+    ctx.quadraticCurveTo(
+      79,
+      50,
+      60,
+      62
+    );
+
+    // Retour vers l'épaule.
+    ctx.quadraticCurveTo(
+      49,
+      27,
+      38,
+      -25
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Os supérieur principal.
+    ctx.strokeStyle = "#326895";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.moveTo(40, -23);
+
+    ctx.quadraticCurveTo(
+      99,
+      -74,
+      204,
+      -62
+    );
+
+    ctx.stroke();
+
+    // Nervures de la membrane.
+    ctx.strokeStyle = "#244f76";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(48, -18);
+    ctx.quadraticCurveTo(100, -35, 168, 36);
+
+    ctx.moveTo(50, -13);
+    ctx.quadraticCurveTo(88, -6, 119, 52);
+
+    ctx.moveTo(52, -8);
+    ctx.quadraticCurveTo(70, 15, 61, 58);
+
+    ctx.stroke();
+
+    // Petite griffe à l'extrémité.
+    ctx.fillStyle = "#c7d2dc";
+    ctx.strokeStyle = "#667582";
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.moveTo(202, -62);
+    ctx.lineTo(224, -77);
+    ctx.lineTo(211, -53);
+    ctx.closePath();
+
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  drawBody(ctx) {
+    const gradient = ctx.createLinearGradient(
+      0,
+      -10,
+      0,
+      125
+    );
+
+    gradient.addColorStop(0, "#245985");
+    gradient.addColorStop(1, "#102f50");
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = "#5f8faf";
+    ctx.lineWidth = 2.5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(-43, 2);
+
+    ctx.quadraticCurveTo(
+      -49,
+      54,
+      -30,
+      105
+    );
+
+    ctx.quadraticCurveTo(
+      -15,
+      126,
+      0,
+      134
+    );
+
+    ctx.quadraticCurveTo(
+      15,
+      126,
+      30,
+      105
+    );
+
+    ctx.quadraticCurveTo(
+      49,
+      54,
+      43,
+      2
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Plaques ventrales.
+    ctx.fillStyle = "#356f9a";
+
+    for (let i = 0; i < 4; i++) {
+      const plateY = 42 + i * 20;
+      const plateWidth = 21 - i * 2;
+
+      ctx.beginPath();
+
+      ctx.moveTo(-plateWidth, plateY);
+      ctx.lineTo(0, plateY + 10);
+      ctx.lineTo(plateWidth, plateY);
+      ctx.lineTo(0, plateY + 17);
+
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  drawArms(ctx) {
+    this.drawArm(ctx, -1);
+    this.drawArm(ctx, 1);
+  }
+
+  drawArm(ctx, side) {
+    ctx.save();
+    ctx.scale(side, 1);
+
+    ctx.fillStyle = "#163f67";
+    ctx.strokeStyle = "#5a83a3";
+    ctx.lineWidth = 2.5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(34, 48);
+
+    ctx.quadraticCurveTo(
+      54,
+      64,
+      55,
+      88
+    );
+
+    ctx.quadraticCurveTo(
+      54,
+      107,
+      68,
+      119
+    );
+
+    ctx.lineTo(57, 127);
+
+    ctx.quadraticCurveTo(
+      36,
+      114,
+      39,
+      87
+    );
+
+    ctx.quadraticCurveTo(
+      39,
+      67,
+      25,
+      54
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Main.
+    ctx.fillStyle = "#204f77";
+
+    ctx.beginPath();
+    ctx.ellipse(
+      62,
+      121,
+      13,
+      9,
+      0.35,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+    ctx.stroke();
+
+    // Griffes.
+    ctx.fillStyle = "#d6dde3";
+    ctx.strokeStyle = "#66717b";
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 3; i++) {
+      const clawY = 115 + i * 6;
+
+      ctx.beginPath();
+      ctx.moveTo(65, clawY);
+      ctx.lineTo(84 + i * 3, clawY + 5);
+      ctx.lineTo(66, clawY + 8);
+      ctx.closePath();
+
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+  drawHead(ctx) {
+    ctx.save();
+
+    const gradient = ctx.createLinearGradient(
+      0,
+      -82,
+      0,
+      65
+    );
+
+    gradient.addColorStop(0, "#3476a8");
+    gradient.addColorStop(0.5, "#245b87");
+    gradient.addColorStop(1, "#123b61");
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = "#84a9c3";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    /*
+    * Deux pointes supérieures du crâne.
+    * Elles servent aussi de bases aux cornes.
+    */
+    ctx.moveTo(-56, -43);
+    ctx.lineTo(-31, -69);
+
+    // Sommet central.
+    ctx.lineTo(0, -82);
+
+    ctx.lineTo(31, -69);
+    ctx.lineTo(56, -43);
+
+    // Tempes.
+    ctx.lineTo(48, -3);
+    ctx.lineTo(35, 26);
+
+    // Le museau se resserre fortement.
+    ctx.lineTo(21, 52);
+    ctx.lineTo(0, 70);
+    ctx.lineTo(-21, 52);
+    ctx.lineTo(-35, 26);
+    ctx.lineTo(-48, -3);
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    this.drawFacePlates(ctx);
+    this.drawHorns(ctx);
+    this.drawEyes(ctx);
+    this.drawNostrils(ctx);
+    this.drawMouth(ctx);
+
+    ctx.restore();
+  }
+  drawFacePlates(ctx) {
+    ctx.fillStyle = "#4381ad";
+
+    // Crête centrale.
+    ctx.beginPath();
+    ctx.moveTo(0, -72);
+    ctx.lineTo(-14, -43);
+    ctx.lineTo(0, -25);
+    ctx.lineTo(14, -43);
+    ctx.closePath();
+    ctx.fill();
+
+    // Plaque centrale.
+    ctx.fillStyle = "#39739d";
+
+    ctx.beginPath();
+    ctx.moveTo(0, -24);
+    ctx.lineTo(-12, 3);
+    ctx.lineTo(0, 24);
+    ctx.lineTo(12, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Joues.
+    ctx.fillStyle = "#1b4d77";
+
+    ctx.beginPath();
+    ctx.moveTo(-44, 4);
+    ctx.lineTo(-18, 15);
+    ctx.lineTo(-25, 39);
+    ctx.lineTo(-39, 24);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(44, 4);
+    ctx.lineTo(18, 15);
+    ctx.lineTo(25, 39);
+    ctx.lineTo(39, 24);
+    ctx.closePath();
+    ctx.fill();
+  }
+  drawHorns(ctx) {
+    ctx.fillStyle = "#d4dce3";
+    ctx.strokeStyle = "#63717d";
+    ctx.lineWidth = 2;
+
+    // Corne gauche : attachée à la pointe gauche du crâne.
+    ctx.beginPath();
+
+    ctx.moveTo(-54, -42);
+
+    ctx.quadraticCurveTo(
+      -80,
+      -68,
+      -88,
+      -99
+    );
+
+    ctx.quadraticCurveTo(
+      -64,
+      -76,
+      -31,
+      -66
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Corne droite.
+    ctx.beginPath();
+
+    ctx.moveTo(54, -42);
+
+    ctx.quadraticCurveTo(
+      80,
+      -68,
+      88,
+      -99
+    );
+
+    ctx.quadraticCurveTo(
+      64,
+      -76,
+      31,
+      -66
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  drawEyes(ctx) {
+    ctx.save();
+
+    ctx.shadowColor = "#ff2020";
+    ctx.shadowBlur = 6 * this.eyeGlow;
+
+    ctx.fillStyle = "#ff2424";
+
+    // Œil gauche.
+    ctx.beginPath();
+    ctx.moveTo(-39, -18);
+    ctx.lineTo(-11, -10);
+    ctx.lineTo(-20, 4);
+    ctx.lineTo(-42, -5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Œil droit.
+    ctx.beginPath();
+    ctx.moveTo(39, -18);
+    ctx.lineTo(11, -10);
+    ctx.lineTo(20, 4);
+    ctx.lineTo(42, -5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Pupilles verticales.
+    ctx.fillStyle = "#190000";
+
+    ctx.beginPath();
+    ctx.ellipse(
+      -26,
+      -7,
+      2.5,
+      8,
+      -0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(
+      26,
+      -7,
+      2.5,
+      8,
+      0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.restore();
+  }
+  drawNostrils(ctx) {
+    ctx.fillStyle = "#071a29";
+
+    ctx.beginPath();
+    ctx.ellipse(
+      -7,
+      30,
+      3,
+      4,
+      -0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(
+      7,
+      30,
+      3,
+      4,
+      0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+  drawMouth(ctx) {
+    const opening = this.mouthOpen;
+    const upperY = 44;
+    const lowerY = 47 + opening * 18;
+
+    ctx.fillStyle = "#14070a";
+    ctx.strokeStyle = "#091824";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(-21, upperY);
+
+    ctx.quadraticCurveTo(
+      0,
+      lowerY + 5,
+      21,
+      upperY
+    );
+
+    ctx.quadraticCurveTo(
+      0,
+      upperY + 5,
+      -21,
+      upperY
+    );
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    if (opening < 0.18) {
+      return;
+    }
+
+    ctx.fillStyle = "#eee8dc";
+
+    const teeth = [-16, -8, 0, 8, 16];
+
+    for (const toothX of teeth) {
+      ctx.beginPath();
+      ctx.moveTo(toothX - 2.5, upperY);
+      ctx.lineTo(toothX + 2.5, upperY);
+      ctx.lineTo(toothX, upperY + 7);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(toothX - 2.5, lowerY);
+      ctx.lineTo(toothX + 2.5, lowerY);
+      ctx.lineTo(toothX, lowerY - 7);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
