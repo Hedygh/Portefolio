@@ -13,6 +13,7 @@ import { BossProjectile } from "./bossProjectiles.js";
 import { SteelEyeEnemy } from "./steelEyeEnemy.js";
 import { FinalBossBackground } from "./finalBossBackground.js";
 import { DragonFireball } from "./dragonFireballs.js";
+import { DragonBeam } from "./dragonBeams.js";
 
 import {
   DEV_MODE,
@@ -61,6 +62,9 @@ export class Game {
     this.hasShield = false;
     this.damageCooldown = 0;
     this.bossProjectiles = [];
+
+    this.dragonBeams = [];
+    this.dragonBeamAngle = 0;
 
     this.gameOver = false;
     this.playerVisible = true;
@@ -113,6 +117,9 @@ this.frameCount = DEV_MODE
     this.damageCooldown = 0;
     this.bossProjectiles = [];
 
+    this.dragonBeams = [];
+    this.dragonBeamAngle = 0;
+
     this.isRunning = true;
     this.gameOver = false;
     this.playerVisible = true;
@@ -158,6 +165,8 @@ this.frameCount = DEV_MODE
         this.lastDragonPhase = this.boss.phase;
 
         this.updateDragonPhaseOne();
+        this.updateDragonPhaseTwo();
+
         this.checkBulletDragonBossCollisions();
       }
     } else {
@@ -186,6 +195,8 @@ this.frameCount = DEV_MODE
     this.updateExplosions();
     this.updateDragonFireballs();
     this.checkDragonFireballPlayerCollisions();
+    this.clearDragonBeamsOutsidePhaseTwo();
+    this.checkDragonBeamPlayerCollisions();
   }
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -221,9 +232,15 @@ this.frameCount = DEV_MODE
     if (this.boss) {
       this.boss.draw(this.ctx);
     }
+
+    for (const beam of this.dragonBeams) {
+      beam.draw(this.ctx);
+    }
+
     for (const fireball of this.dragonFireballs) {
       fireball.draw(this.ctx);
     }
+
     if (this.playerVisible) {
       this.player.draw(this.ctx);
       if (this.hasShield && this.playerVisible) {
@@ -765,6 +782,8 @@ this.frameCount = DEV_MODE
     this.enemyBullets = [];
     this.bossProjectiles = [];
     this.steelEyeEnemies = [];
+    this.dragonBeams = [];
+    this.dragonBeamAngle = 0;
 
     this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
   }
@@ -1031,6 +1050,21 @@ this.frameCount = DEV_MODE
       }
     }
   }
+  checkDragonBeamPlayerCollisions() {
+    if (this.dragonBeams.length === 0) {
+      return;
+    }
+
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const beam of this.dragonBeams) {
+      if (beam.isCollidingWith(playerHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
   getDragonHitbox() {
     return {
       x:
@@ -1078,6 +1112,79 @@ this.frameCount = DEV_MODE
     this.boss.attackTimer = 110;
   }
 
+  updateDragonPhaseTwo() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 2
+    ) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    /*
+    * Le dragon doit être arrivé presque au centre
+    * avant que le premier rayon soit créé.
+    */
+    const distanceFromCenter =
+      Math.hypot(
+        this.boss.centerTargetX - this.boss.x,
+        this.boss.centerTargetY - this.boss.y
+      );
+
+    if (distanceFromCenter > 4) {
+      return;
+    }
+
+    if (this.dragonBeams.length === 0) {
+      this.dragonBeams.push(
+        new DragonBeam(0)
+      );
+    }
+
+    const healthRatio =
+      this.boss.health / this.boss.maxHealth;
+
+    /*
+    * À 40 % des PV, ajout d'un rayon perpendiculaire.
+    * PI / 2 correspond à 90 degrés.
+    */
+    if (
+      healthRatio <= 0.4 &&
+      this.dragonBeams.length === 1
+    ) {
+      this.dragonBeams.push(
+        new DragonBeam(Math.PI / 2)
+      );
+    }
+
+    this.dragonBeamAngle += 0.008;
+
+    for (const beam of this.dragonBeams) {
+      beam.update(
+        mouth.x,
+        mouth.y,
+        this.dragonBeamAngle
+      );
+    }
+  }
+  clearDragonBeamsOutsidePhaseTwo() {
+    if (
+      !this.boss ||
+      this.currentBossLevel !== 15
+    ) {
+      this.dragonBeams = [];
+      return;
+    }
+
+    if (this.boss.phase !== 2) {
+      this.dragonBeams = [];
+    }
+  }
   updateDragonFireballs() {
     for (const fireball of this.dragonFireballs) {
       fireball.update();
