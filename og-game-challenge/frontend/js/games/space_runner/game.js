@@ -81,6 +81,10 @@ export class Game {
     this.victoryPortal = null;
     this.playerVictoryScale = 1;
     this.victoryFinished = false;
+
+    this.victoryTitleVisible = false;
+    this.victoryTitleProgress = 0;
+    this.victoryTitleTimer = 0;
   }
 
   start() {
@@ -325,6 +329,7 @@ this.frameCount = DEV_MODE
     this.drawExplosions();
     this.drawBonusMessage();
     this.drawBossProjectiles();
+    this.drawVictoryTitle();
   }
 
   loop() {
@@ -1414,6 +1419,105 @@ this.frameCount = DEV_MODE
 
     this.messageElement.textContent = `Game Over — Score: ${this.score}`;
   }
+  drawVictoryTitle() {
+    if (!this.victoryTitleVisible) {
+      return;
+    }
+
+    const progress = this.victoryTitleProgress;
+
+    const scale =
+      0.35 + progress * 0.65;
+
+    const alpha =
+      Math.min(1, progress * 1.6);
+
+    const centerX =
+      this.canvas.width / 2;
+
+    const centerY =
+      this.canvas.height / 2;
+
+    this.ctx.save();
+
+    this.ctx.globalAlpha = alpha;
+
+    this.ctx.translate(
+      centerX,
+      centerY
+    );
+
+    this.ctx.scale(scale, scale);
+
+    /*
+    * Inclinaison horizontale donnant
+    * un effet de titre spatial dynamique.
+    */
+    this.ctx.transform(
+      1,
+      0,
+      -0.18,
+      1,
+      0,
+      0
+    );
+
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
+    const gradient =
+      this.ctx.createLinearGradient(
+        0,
+        -80,
+        0,
+        80
+      );
+
+    gradient.addColorStop(0, "#fff6a8");
+    gradient.addColorStop(0.35, "#ffb62e");
+    gradient.addColorStop(0.7, "#ff5a24");
+    gradient.addColorStop(1, "#c01cff");
+
+    this.ctx.fillStyle = gradient;
+
+    this.ctx.strokeStyle = "#7c22ff";
+    this.ctx.lineWidth = 6;
+
+    this.ctx.shadowColor = "#ff4bd8";
+    this.ctx.shadowBlur = 16;
+
+    this.ctx.font =
+      "900 76px Orbitron, sans-serif";
+
+    this.ctx.strokeText(
+      "SPACE",
+      0,
+      -43
+    );
+
+    this.ctx.fillText(
+      "SPACE",
+      0,
+      -43
+    );
+
+    this.ctx.font =
+      "900 68px Orbitron, sans-serif";
+
+    this.ctx.strokeText(
+      "RUNNER",
+      0,
+      38
+    );
+
+    this.ctx.fillText(
+      "RUNNER",
+      0,
+      38
+    );
+
+    this.ctx.restore();
+  }
   startVictorySequence() {
     this.victorySequence = true;
 
@@ -1456,7 +1560,7 @@ this.frameCount = DEV_MODE
     const distance = Math.hypot(dx, dy);
 
     if (distance > 8) {
-      const speed = 3.2;
+      const speed = 1.2;
 
       this.player.x +=
         (dx / distance) * speed;
@@ -1476,7 +1580,19 @@ this.frameCount = DEV_MODE
       this.playerVictoryScale = 0;
       this.playerVisible = false;
 
-      if (!this.victoryFinished) {
+      this.victoryTitleVisible = true;
+
+      if (this.victoryTitleProgress < 1) {
+        this.victoryTitleProgress += 0.018;
+      } else {
+        this.victoryTitleProgress = 1;
+        this.victoryTitleTimer++;
+      }
+
+      if (
+        this.victoryTitleTimer >= 150 &&
+        !this.victoryFinished
+      ) {
         this.victoryFinished = true;
         this.winGame();
       }
