@@ -548,8 +548,8 @@ export class DragonBoss {
 
     this.active = true;
 
-    this.health = 700;
-    this.maxHealth = 700;
+    this.health = 100;
+    this.maxHealth = 100;
     this.attackTimer = 110;
     this.state = "entering";
     this.phase = 1;
@@ -584,6 +584,19 @@ export class DragonBoss {
     ) {
       this.phase = 2;
     }
+    if (
+      this.phase === 2 &&
+      this.health <= this.maxHealth * 0.25
+    ) {
+      this.phase = 3;
+
+      this.centerTargetX =
+        CANVAS_WIDTH / 2 - this.width / 2;
+
+      this.centerTargetY = 40;
+
+      this.attackTimer = 80;
+    }
 
     if (this.state === "entering") {
       this.updateEntering();
@@ -593,17 +606,19 @@ export class DragonBoss {
     if (this.state === "fighting") {
 
       if (this.phase === 1) {
+        this.updateHorizontalMovement();
 
-          this.updateHorizontalMovement();
-
-          if (this.attackTimer > 0) {
-              this.attackTimer--;
-          }
-
+        if (this.attackTimer > 0) {
+          this.attackTimer--;
+        }
       } else if (this.phase === 2) {
+        this.updatePhaseTwoPosition();
+      } else if (this.phase === 3) {
+        this.updatePhaseThreePosition();
 
-          this.updatePhaseTwoPosition();
-
+        if (this.attackTimer > 0) {
+          this.attackTimer--;
+        }
       }
     }
   }
@@ -655,6 +670,21 @@ export class DragonBoss {
 
       this.x += dx * 0.05;
       this.y += dy * 0.05;
+  }
+  updatePhaseThreePosition() {
+    const dx = this.centerTargetX - this.x;
+    const dy = this.centerTargetY - this.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    if (distance < 2) {
+      this.x = this.centerTargetX;
+      this.y = this.centerTargetY;
+      return;
+    }
+
+    this.x += dx * 0.06;
+    this.y += dy * 0.06;
   }
   updateWings() {
     this.wingAngle =
@@ -730,6 +760,13 @@ export class DragonBoss {
     }
   }
 
+  getMainColor() {
+    if (this.phase === 3) {
+      return "#b84f18";
+    }
+
+    return "#245b87";
+  } 
   draw(ctx) {
     const centerX = this.x + this.width / 2;
     const centerY = this.y + 105;
@@ -773,9 +810,15 @@ export class DragonBoss {
       -30
     );
 
-    gradient.addColorStop(0, "#174a78");
-    gradient.addColorStop(0.45, "#0d3158");
-    gradient.addColorStop(1, "#071a33");
+    if (this.phase === 3) {
+      gradient.addColorStop(0, "#8c2f12");
+      gradient.addColorStop(0.45, "#5e180c");
+      gradient.addColorStop(1, "#260806");
+    } else {
+      gradient.addColorStop(0, "#174a78");
+      gradient.addColorStop(0.45, "#0d3158");
+      gradient.addColorStop(1, "#071a33");
+    }
 
     ctx.fillStyle = gradient;
     ctx.strokeStyle = "#568dbd";
@@ -1082,9 +1125,16 @@ export class DragonBoss {
       65
     );
 
-    gradient.addColorStop(0, "#3476a8");
-    gradient.addColorStop(0.5, "#245b87");
-    gradient.addColorStop(1, "#123b61");
+
+    if (this.phase === 3) {
+      gradient.addColorStop(0, "#ff9a35");
+      gradient.addColorStop(0.5, "#c95719");
+      gradient.addColorStop(1, "#69220e");
+    } else {
+      gradient.addColorStop(0, "#3476a8");
+      gradient.addColorStop(0.5, "#245b87");
+      gradient.addColorStop(1, "#123b61");
+    }
 
     ctx.fillStyle = gradient;
     ctx.strokeStyle = "#84a9c3";

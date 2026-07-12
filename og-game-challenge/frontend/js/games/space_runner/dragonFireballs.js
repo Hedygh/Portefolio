@@ -11,7 +11,7 @@ export class DragonFireball {
     this.targetX = targetX;
     this.targetY = targetY;
 
-    this.radius = 8;
+    this.radius = 15;
     this.width = this.radius * 2;
     this.height = this.radius * 2;
 

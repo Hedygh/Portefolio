@@ -14,6 +14,8 @@ import { SteelEyeEnemy } from "./steelEyeEnemy.js";
 import { FinalBossBackground } from "./finalBossBackground.js";
 import { DragonFireball } from "./dragonFireballs.js";
 import { DragonBeam } from "./dragonBeams.js";
+import { DragonLaser } from "./dragonLasers.js";
+import { VictoryPortal } from "./victoryPortal.js";
 
 import {
   DEV_MODE,
@@ -42,6 +44,8 @@ export class Game {
     this.enemyBullets = [];
     this.steelEyeEnemies = [];
     this.dragonFireballs = [];
+    this.dragonLasers = [];
+    this.dragonLaserTimer = 100;
 
     this.score = 0;
     this.level = 1;
@@ -71,6 +75,12 @@ export class Game {
 
     this.isRunning = false;
     this.animationId = null;
+
+ //fin de jeu
+    this.victorySequence = false;
+    this.victoryPortal = null;
+    this.playerVictoryScale = 1;
+    this.victoryFinished = false;
   }
 
   start() {
@@ -100,6 +110,8 @@ this.frameCount = DEV_MODE
     this.enemyBullets = [];
     this.steelEyeEnemies = [];
     this.dragonFireballs = [];
+    this.dragonLasers = [];
+    this.dragonLaserTimer = 100; 
 
     this.shootCooldown = 0;
     this.enemySpawnTimer = 0;
@@ -124,6 +136,11 @@ this.frameCount = DEV_MODE
     this.gameOver = false;
     this.playerVisible = true;
 
+    this.victorySequence = false;
+    this.victoryPortal = null;
+    this.playerVictoryScale = 1;
+    this.victoryFinished = false;
+
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
@@ -136,9 +153,16 @@ this.frameCount = DEV_MODE
     if (this.level === 15 || this.currentBossLevel === 15) {
       this.finalBossBackground.update();
     }
-    this.player.update();
-    this.updateDifficulty();
-
+    if (this.victorySequence) {
+      this.updateVictorySequence();
+    } else {
+      this.player.update();
+      this.updateDifficulty();
+    }
+    if (this.victorySequence) {
+      this.updateExplosions();
+      return;
+    }
     this.updateShooting();
     this.updateBullets();
 
@@ -153,22 +177,33 @@ this.frameCount = DEV_MODE
         this.checkBulletWormBossCollisions();
         this.checkPlayerWormBossCollisions();
       }
-
-      if (this.currentBossLevel === 15) {
-        if (
-          this.lastDragonPhase === 1 &&
-          this.boss.phase === 2
-        ) {
-          this.dragonFireballs = [];
-        }
-
-        this.lastDragonPhase = this.boss.phase;
-
-        this.updateDragonPhaseOne();
-        this.updateDragonPhaseTwo();
-
-        this.checkBulletDragonBossCollisions();
+    if (this.currentBossLevel === 15) {
+      if (
+        this.lastDragonPhase === 1 &&
+        this.boss.phase === 2
+      ) {
+        this.dragonFireballs = [];
       }
+
+      if (
+        this.lastDragonPhase === 2 &&
+        this.boss.phase === 3
+      ) {
+        this.dragonBeams = [];
+        this.dragonFireballs = [];
+        this.dragonLasers = [];
+        this.dragonLaserTimer = 80;
+      }
+
+      this.lastDragonPhase = this.boss.phase;
+
+      this.updateDragonPhaseOne();
+      this.updateDragonPhaseTwo();
+      this.updateDragonPhaseThree();
+
+      this.checkBulletDragonBossCollisions();
+    }
+
     } else {
       this.updateEnemies();
       this.updateMeteors();
@@ -197,6 +232,8 @@ this.frameCount = DEV_MODE
     this.checkDragonFireballPlayerCollisions();
     this.clearDragonBeamsOutsidePhaseTwo();
     this.checkDragonBeamPlayerCollisions();
+    this.updateDragonLasers();
+    this.checkDragonLaserPlayerCollisions();
   }
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -240,11 +277,48 @@ this.frameCount = DEV_MODE
     for (const fireball of this.dragonFireballs) {
       fireball.draw(this.ctx);
     }
+    for (const beam of this.dragonBeams) {
+      beam.draw(this.ctx);
+    }
 
+    for (const fireball of this.dragonFireballs) {
+      fireball.draw(this.ctx);
+    }
+
+    for (const laser of this.dragonLasers) {
+      laser.draw(this.ctx);
+    }
+    if (this.victoryPortal) {
+      this.victoryPortal.draw(this.ctx);
+    }
     if (this.playerVisible) {
-      this.player.draw(this.ctx);
-      if (this.hasShield && this.playerVisible) {
-        this.player.drawShield(this.ctx);
+      if (this.victorySequence) {
+        this.ctx.save();
+
+        this.ctx.translate(
+          this.player.x,
+          this.player.y
+        );
+
+        this.ctx.scale(
+          this.playerVictoryScale,
+          this.playerVictoryScale
+        );
+
+        this.ctx.translate(
+          -this.player.x,
+          -this.player.y
+        );
+
+        this.player.draw(this.ctx);
+
+        this.ctx.restore();
+      } else {
+        this.player.draw(this.ctx);
+
+        if (this.hasShield) {
+          this.player.drawShield(this.ctx);
+        }
       }
     }
 
@@ -784,6 +858,8 @@ this.frameCount = DEV_MODE
     this.steelEyeEnemies = [];
     this.dragonBeams = [];
     this.dragonBeamAngle = 0;
+    this.dragonLasers = [];
+    this.dragonLaserTimer = 100;
 
     this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
   }
@@ -866,7 +942,7 @@ this.frameCount = DEV_MODE
       }
     }
     if (defeatedLevel === 15) {
-      this.winGame();
+      this.startVictorySequence();
       return;
     }
 
@@ -1042,7 +1118,7 @@ this.frameCount = DEV_MODE
           fireball.state = "burning";
           fireball.vx = 0;
           fireball.vy = 0;
-          fireball.radius = 16;
+          fireball.radius = 30;
           fireball.updateHitbox();
         }
 
@@ -1060,6 +1136,21 @@ this.frameCount = DEV_MODE
 
     for (const beam of this.dragonBeams) {
       if (beam.isCollidingWith(playerHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
+  checkDragonLaserPlayerCollisions() {
+    if (this.dragonLasers.length === 0) {
+      return;
+    }
+
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const laser of this.dragonLasers) {
+      if (laser.isCollidingWith(playerHitbox)) {
         this.damagePlayer();
         break;
       }
@@ -1172,6 +1263,76 @@ this.frameCount = DEV_MODE
       );
     }
   }
+
+  updateDragonPhaseThree() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 3
+    ) {
+      return;
+    }
+
+    const distanceFromTarget =
+      Math.hypot(
+        this.boss.centerTargetX - this.boss.x,
+        this.boss.centerTargetY - this.boss.y
+      );
+
+    if (distanceFromTarget > 4) {
+      return;
+    }
+
+    this.updateDragonPhaseThreeFireballs();
+    this.updateDragonPhaseThreeLasers();
+  }
+
+
+  updateDragonPhaseThreeFireballs() {
+    if (this.boss.attackTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    this.dragonFireballs.push(
+      new DragonFireball(
+        mouth.x,
+        mouth.y,
+        this.player.x,
+        this.player.y
+      )
+    );
+
+    this.boss.attackTimer = 110;
+  }
+  updateDragonPhaseThreeLasers() {
+    this.dragonLaserTimer--;
+
+    if (this.dragonLaserTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    const angle =
+      Math.random() * Math.PI;
+
+    this.dragonLasers.push(
+      new DragonLaser(
+        mouth.x,
+        mouth.y,
+        angle
+      )
+    );
+
+    this.dragonLaserTimer =
+      100 + Math.floor(Math.random() * 55);
+  }
   clearDragonBeamsOutsidePhaseTwo() {
     if (
       !this.boss ||
@@ -1193,6 +1354,16 @@ this.frameCount = DEV_MODE
     this.dragonFireballs =
       this.dragonFireballs.filter(
         (fireball) => fireball.active
+      );
+  }
+  updateDragonLasers() {
+    for (const laser of this.dragonLasers) {
+      laser.update();
+    }
+
+    this.dragonLasers =
+      this.dragonLasers.filter(
+        (laser) => laser.active
       );
   }
   damagePlayer() {
@@ -1242,5 +1413,73 @@ this.frameCount = DEV_MODE
     });
 
     this.messageElement.textContent = `Game Over — Score: ${this.score}`;
+  }
+  startVictorySequence() {
+    this.victorySequence = true;
+
+    this.boss = null;
+    this.bossActive = false;
+    this.currentBossLevel = null;
+
+    this.bullets = [];
+    this.enemies = [];
+    this.meteors = [];
+    this.enemyBullets = [];
+    this.bossProjectiles = [];
+    this.dragonFireballs = [];
+    this.dragonBeams = [];
+    this.dragonLasers = [];
+    this.steelEyeEnemies = [];
+    this.bonuses = [];
+
+    this.victoryPortal = new VictoryPortal();
+
+    this.showBonusMessage("VICTORY");
+  }
+  updateVictorySequence() {
+    if (!this.victoryPortal) {
+      return;
+    }
+
+    this.victoryPortal.update();
+
+    if (!this.victoryPortal.opened) {
+      return;
+    }
+
+    const targetX = this.victoryPortal.x;
+    const targetY = this.victoryPortal.y;
+
+    const dx = targetX - this.player.x;
+    const dy = targetY - this.player.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    if (distance > 8) {
+      const speed = 3.2;
+
+      this.player.x +=
+        (dx / distance) * speed;
+
+      this.player.y +=
+        (dy / distance) * speed;
+
+      return;
+    }
+
+    this.player.x = targetX;
+    this.player.y = targetY;
+
+    this.playerVictoryScale -= 0.025;
+
+    if (this.playerVictoryScale <= 0) {
+      this.playerVictoryScale = 0;
+      this.playerVisible = false;
+
+      if (!this.victoryFinished) {
+        this.victoryFinished = true;
+        this.winGame();
+      }
+    }
   }
 }
