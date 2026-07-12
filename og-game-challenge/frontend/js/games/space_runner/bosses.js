@@ -548,8 +548,8 @@ export class DragonBoss {
 
     this.active = true;
 
-    this.health = 100;
-    this.maxHealth = 100;
+    this.health = 900;
+    this.maxHealth = 900;
     this.attackTimer = 110;
     this.state = "entering";
     this.phase = 1;
