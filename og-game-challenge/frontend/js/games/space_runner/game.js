@@ -36,6 +36,9 @@ export class Game {
     this.finalBossBackground = new FinalBossBackground();
     this.lastDragonPhase = 1;
 
+    this.bossTransition = false;
+    this.pendingBossLevel = null;
+
     this.bullets = [];
     this.enemies = [];
     this.meteors = [];
@@ -86,7 +89,10 @@ export class Game {
     this.victoryTitleProgress = 0;
     this.victoryTitleTimer = 0;
   }
-
+  
+/*═══════════════════════════════════════════════════════
+                      CONSTRUCTOR
+═══════════════════════════════════════════════════════*/
   start() {
     this.score = 0;
    // this.level = 1;
@@ -105,6 +111,9 @@ this.frameCount = DEV_MODE
 
     this.player.reset();
     this.finalBossBackground.reset();
+
+    this.bossTransition = false;
+    this.pendingBossLevel = null;
 
     this.bullets = [];
     this.enemies = [];
@@ -212,6 +221,7 @@ this.frameCount = DEV_MODE
       this.updateEnemies();
       this.updateMeteors();
       this.updateSteelEyeEnemies();
+      this.updateBossTransition();
     }
 
     this.updateEnemyBullets();
@@ -343,9 +353,151 @@ this.frameCount = DEV_MODE
     this.animationId = requestAnimationFrame(() => this.loop());
   }
 
+/*═══════════════════════════════════════════════════════
+                      GAME FLOW
+═══════════════════════════════════════════════════════*/
+ startVictorySequence() {
+    this.victorySequence = true;
+
+    this.boss = null;
+    this.bossActive = false;
+    this.currentBossLevel = null;
+
+    this.bullets = [];
+    this.enemies = [];
+    this.meteors = [];
+    this.enemyBullets = [];
+    this.bossProjectiles = [];
+    this.dragonFireballs = [];
+    this.dragonBeams = [];
+    this.dragonLasers = [];
+    this.steelEyeEnemies = [];
+    this.bonuses = [];
+
+    this.victoryPortal = new VictoryPortal();
+
+    this.showBonusMessage("VICTORY");
+  }
+  updateVictorySequence() {
+    if (!this.victoryPortal) {
+      return;
+    }
+
+    this.victoryPortal.update();
+
+    if (!this.victoryPortal.opened) {
+      return;
+    }
+
+    const targetX = this.victoryPortal.x;
+    const targetY = this.victoryPortal.y;
+
+    const dx = targetX - this.player.x;
+    const dy = targetY - this.player.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    if (distance > 8) {
+      const speed = 1.2;
+
+      this.player.x +=
+        (dx / distance) * speed;
+
+      this.player.y +=
+        (dy / distance) * speed;
+
+      return;
+    }
+
+    this.player.x = targetX;
+    this.player.y = targetY;
+
+    this.playerVictoryScale -= 0.025;
+
+    if (this.playerVictoryScale <= 0) {
+      this.playerVictoryScale = 0;
+      this.playerVisible = false;
+
+      this.victoryTitleVisible = true;
+
+      if (this.victoryTitleProgress < 1) {
+        this.victoryTitleProgress += 0.018;
+      } else {
+        this.victoryTitleProgress = 1;
+        this.victoryTitleTimer++;
+      }
+
+      if (
+        this.victoryTitleTimer >= 150 &&
+        !this.victoryFinished
+      ) {
+        this.victoryFinished = true;
+        this.winGame();
+      }
+    }
+  }
+
+  winGame() {
+    this.isRunning = false;
+    this.gameOver = true;
+
+    this.messageElement.textContent =
+      `Victory — Final Score: ${this.score}`;
+    window.handleGameOver("space-runner", this.score);
+  }
+  endGame() {
+    if (this.gameOver) {
+      return;
+    }
+
+    this.gameOver = true;
+    this.isRunning = false;
+    this.playerVisible = false;
+
+    this.explosions.push({
+      x: this.player.x,
+      y: this.player.y + this.player.height / 2,
+      radius: 8,
+      life: 25
+    });
+
+    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
+    window.handleGameOver("space-runner", this.score);
+  }
+
+ damagePlayer() {
+    if (this.damageCooldown > 0) {
+      return;
+    }
+
+    if (this.hasShield) {
+      this.hasShield = false;
+      this.showBonusMessage("SHIELD LOST");
+
+      this.explosions.push({
+        x: this.player.x,
+        y: this.player.y + this.player.height / 2,
+        radius: 6,
+        life: 12
+      });
+
+      return;
+    }
+
+    this.endGame();
+  }
+/*═══════════════════════════════════════════════════════
+                      LEVEL / GAME PROGRESSION
+═══════════════════════════════════════════════════════*/
   updateDifficulty() {
     if (this.bossActive) {
       this.level = this.currentBossLevel;
+      this.levelElement.textContent = this.level;
+      return;
+    }
+
+    if (this.bossTransition) {
+      this.level = this.pendingBossLevel;
       this.levelElement.textContent = this.level;
       return;
     }
@@ -365,7 +517,7 @@ this.frameCount = DEV_MODE
     this.levelElement.textContent = this.level;
 
     if (this.shouldStartBossFight(this.level)) {
-      this.startBossFight(this.level);
+      this.startBossTransition(this.level);
     }
   }
 // Method pour gérer le spawn des boss en fonction du level
@@ -376,7 +528,6 @@ this.frameCount = DEV_MODE
       this.canCreateBoss(level)
     );
   }
-
   isBossLevel(level) {
     return level === 5 || level === 10 || level === 15;
   }
@@ -384,118 +535,48 @@ this.frameCount = DEV_MODE
     return level === 5 || level == 10 || level == 15;
   }
 
-  createBoss(level) {
-    if (level === 5) {
-      return new EyeBoss();
-    }
-    if (level === 10) {
-      return new WormBoss();
-    }
-    if (level == 15) {
-      return new DragonBoss();
-    }
-    return null;
-  }
-
-  updateShooting() {
-    if (this.shootCooldown > 0) {
-      this.shootCooldown--;
-    }
-
-    if (!keys.shoot || this.shootCooldown !== 0) {
+  startBossTransition(level) {
+    if (this.bossTransition || this.bossActive) {
       return;
     }
 
-    if (this.weaponLevel === 1) {
-      this.bullets.push(new Bullet(this.player.x, this.player.y));
-    }
+    this.bossTransition = true;
+    this.pendingBossLevel = level;
 
-    if (this.weaponLevel === 2) {
-      this.bullets.push(new Bullet(this.player.x - 12, this.player.y + 10));
-      this.bullets.push(new Bullet(this.player.x + 12, this.player.y + 10));
-    }
-
-    if (this.weaponLevel === 3) {
-      this.bullets.push(new Bullet(this.player.x, this.player.y));
-      this.bullets.push(new Bullet(this.player.x - 18, this.player.y + 12));
-      this.bullets.push(new Bullet(this.player.x + 18, this.player.y + 12));
-    }
-
-    this.shootCooldown = 12;
+    this.showBonusMessage("BOSS APPROACHING");
   }
-
-  updateBullets() {
-    for (const bullet of this.bullets) {
-      bullet.update();
+  updateBossTransition() {
+    if (!this.bossTransition) {
+      return;
     }
 
-    this.bullets = this.bullets.filter((bullet) => bullet.active);
-  }
+    const enemiesRemaining =
+      this.enemies.length > 0;
 
-  updateEnemies() {
-    this.enemySpawnTimer++;
+    const meteorsRemaining =
+      this.meteors.length > 0;
 
-    const spawnRate = Math.max(45, 105 - this.level * 5);
+    const steelEyesRemaining =
+      this.steelEyeEnemies.length > 0;
 
-    if (this.enemySpawnTimer >= spawnRate) {
-      this.spawnEnemy();
-      this.enemySpawnTimer = 0;
+    const enemyBulletsRemaining =
+      this.enemyBullets.length > 0;
+
+    if (
+      enemiesRemaining ||
+      meteorsRemaining ||
+      steelEyesRemaining ||
+      enemyBulletsRemaining
+    ) {
+      return;
     }
 
-    for (const enemy of this.enemies) {
-      enemy.update();
-    }
+    const bossLevel = this.pendingBossLevel;
 
-    this.enemies = this.enemies.filter((enemy) => enemy.active);
-  }
+    this.bossTransition = false;
+    this.pendingBossLevel = null;
 
-  updateMeteors() {
-    if (this.level >= 11) {
-        this.meteors = [];
-        return;
-    }
-    
-    this.meteorSpawnTimer++;
-
-    const spawnRate = Math.max(90, 180 - this.level * 8);
-
-    if (this.meteorSpawnTimer >= spawnRate) {
-      this.meteors.push(new Meteor(this.level));
-      this.meteorSpawnTimer = 0;
-    }
-
-    for (const meteor of this.meteors) {
-      meteor.update();
-    }
-
-    this.meteors = this.meteors.filter((meteor) => meteor.active);
-  }
-
-  updateSteelEyeEnemies() {
-    for (const enemy of this.steelEyeEnemies) {
-      enemy.update(this.player);
-    }
-
-    this.steelEyeEnemies =
-      this.steelEyeEnemies.filter(
-        (enemy) => enemy.active
-      );
-  }
-  updateBonuses() {
-    for (const bonus of this.bonuses) {
-      bonus.update();
-    }
-
-    this.bonuses = this.bonuses.filter((bonus) => bonus.active);
-  }
-
-  updateExplosions() {
-    for (const explosion of this.explosions) {
-      explosion.radius += 2;
-      explosion.life--;
-    }
-
-    this.explosions = this.explosions.filter((explosion) => explosion.life > 0);
+    this.startBossFight(bossLevel);
   }
 
   spawnEnemy() {
@@ -538,6 +619,743 @@ this.frameCount = DEV_MODE
       }
     }
   }
+
+/*═══════════════════════════════════════════════════════
+                      PLAYER
+═══════════════════════════════════════════════════════*/
+  updateShooting() {
+    if (this.shootCooldown > 0) {
+      this.shootCooldown--;
+    }
+
+    if (!keys.shoot || this.shootCooldown !== 0) {
+      return;
+    }
+
+    if (this.weaponLevel === 1) {
+      this.bullets.push(new Bullet(this.player.x, this.player.y));
+    }
+
+    if (this.weaponLevel === 2) {
+      this.bullets.push(new Bullet(this.player.x - 12, this.player.y + 10));
+      this.bullets.push(new Bullet(this.player.x + 12, this.player.y + 10));
+    }
+
+    if (this.weaponLevel === 3) {
+      this.bullets.push(new Bullet(this.player.x, this.player.y));
+      this.bullets.push(new Bullet(this.player.x - 18, this.player.y + 12));
+      this.bullets.push(new Bullet(this.player.x + 18, this.player.y + 12));
+    }
+
+    this.shootCooldown = 12;
+  }
+  updateBullets() {
+    for (const bullet of this.bullets) {
+      bullet.update();
+    }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
+  }
+
+/*═══════════════════════════════════════════════════════
+                      CLASSIC ENNEMIES
+═══════════════════════════════════════════════════════*/
+
+  updateEnemies() {
+    if (!this.bossTransition) {
+      this.enemySpawnTimer++;
+
+      const spawnRate = Math.max(
+        45,
+        105 - this.level * 5
+      );
+
+      if (this.enemySpawnTimer >= spawnRate) {
+        this.spawnEnemy();
+        this.enemySpawnTimer = 0;
+      }
+    }
+
+    for (const enemy of this.enemies) {
+      enemy.update();
+    }
+
+    this.enemies = this.enemies.filter(
+      (enemy) => enemy.active
+    );
+  }
+  updateMeteors() {
+    if (this.level >= 11) {
+      this.meteors = [];
+      return;
+    }
+
+    if (!this.bossTransition) {
+      this.meteorSpawnTimer++;
+
+      const spawnRate = Math.max(
+        90,
+        180 - this.level * 8
+      );
+
+      if (this.meteorSpawnTimer >= spawnRate) {
+        this.meteors.push(
+          new Meteor(this.level)
+        );
+
+        this.meteorSpawnTimer = 0;
+      }
+    }
+
+    for (const meteor of this.meteors) {
+      meteor.update();
+    }
+
+    this.meteors = this.meteors.filter(
+      (meteor) => meteor.active
+    );
+  }
+  updateSteelEyeEnemies() {
+    for (const enemy of this.steelEyeEnemies) {
+      enemy.update(this.player);
+    }
+
+    this.steelEyeEnemies =
+      this.steelEyeEnemies.filter(
+        (enemy) => enemy.active
+      );
+  }
+
+ updateEnemyBullets() {
+    for (const enemy of this.enemies) {
+      if (enemy.constructor.name === "SideEnemy" && enemy.state === "attacking") {
+        enemy.shootTimer--;
+
+        if (enemy.shootTimer <= 0 && enemy.shotsFired < 3) {
+          this.enemyBullets.push(
+            new EnemyBullet(
+              enemy.x + enemy.width / 2,
+              enemy.y + enemy.height / 2,
+              enemy.direction
+            )
+          );
+
+          enemy.shotsFired++;
+          enemy.shootTimer = 25;
+        }
+      }
+    }
+
+    for (const bullet of this.enemyBullets) {
+      bullet.update();
+    }
+
+    this.enemyBullets = this.enemyBullets.filter((bullet) => bullet.active);
+  }
+/*═══════════════════════════════════════════════════════
+                      BONUSES
+═══════════════════════════════════════════════════════*/
+  tryDropBonus(enemy) {
+    const roll = Math.random();
+
+    if (this.level >= 6 && this.weaponLevel === 1 && roll < 0.08) {
+      this.bonuses.push(
+        new Bonus(
+          enemy.x + enemy.width / 2,
+          enemy.y + enemy.height / 2,
+          BONUS_TYPES.DOUBLE_SHOT
+        )
+      );
+    }
+
+    if (this.level >= 11 && this.weaponLevel === 2 && roll < 0.02) {
+      this.bonuses.push(
+        new Bonus(
+          enemy.x + enemy.width / 2,
+          enemy.y + enemy.height / 2,
+          BONUS_TYPES.TRIPLE_SHOT
+        )
+      );
+    }
+  }
+  updateBonuses() {
+    for (const bonus of this.bonuses) {
+      bonus.update();
+    }
+
+    this.bonuses = this.bonuses.filter((bonus) => bonus.active);
+  }
+
+  showBonusMessage(text) {
+    this.bonusMessage = text;
+    this.bonusMessageTimer = 120;
+  }
+  updateBonusMessage() {
+    if (this.bonusMessageTimer > 0) {
+      this.bonusMessageTimer--;
+    }
+  }
+
+
+
+
+/*═══════════════════════════════════════════════════════
+                      BOSS MANAGEMENT
+═══════════════════════════════════════════════════════*/
+
+  createBoss(level) {
+    if (level === 5) {
+      return new EyeBoss();
+    }
+    if (level === 10) {
+      return new WormBoss();
+    }
+    if (level == 15) {
+      return new DragonBoss();
+    }
+    return null;
+  }
+  startBossFight(level) {
+    const boss = this.createBoss(level);
+
+    if (!boss) {
+      return;
+    }
+
+    this.boss = boss;
+    this.bossActive = true;
+    this.currentBossLevel = level;
+
+    this.bossProjectiles = [];
+    this.dragonBeams = [];
+    this.dragonBeamAngle = 0;
+    this.dragonLasers = [];
+    this.dragonLaserTimer = 100;
+
+    this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
+  }
+  updateBoss() {
+    if (!this.bossActive || !this.boss) {
+      return;
+    }
+
+    this.boss.update();
+
+    // La mort du boss est contrôlée à chaque frame.
+    if (!this.boss.active) {
+      this.finishBossFight();
+      return;
+    }
+
+    // Gestion des attaques du Boss 1.
+    if (
+      this.currentBossLevel == 5 &&
+      this.boss.state === "fighting" &&
+      this.boss.attackTimer <= 0
+    ) {
+      this.fireBossArc();
+
+      const healthRatio =
+        this.boss.health / this.boss.maxHealth;
+
+      if (healthRatio > 0.66) {
+        this.boss.attackTimer = 240;
+      } else if (healthRatio > 0.33) {
+        this.boss.attackTimer = 180;
+      } else {
+        this.boss.attackTimer = 120;
+      }
+    }
+  }
+ finishBossFight() {
+    const defeatedLevel = this.currentBossLevel;
+
+    this.defeatedBossLevels.add(defeatedLevel);
+
+    this.bossActive = false;
+    this.currentBossLevel = null;
+    this.bossProjectiles = [];
+    this.boss = null;
+
+    this.score += 1000;
+    this.scoreElement.textContent = this.score;
+
+    if (defeatedLevel === 5) {
+      this.hasShield = true;
+      this.showBonusMessage("SHIELD ACQUIRED");
+    }
+    if (defeatedLevel === 10) {
+      if (!this.hasShield) {
+        this.hasShield = true;
+        this.showBonusMessage("SHIELD ACQUIRED");
+      } else {
+        this.showBonusMessage("SHIELD PRESERVED");
+      }
+    }
+    if (defeatedLevel === 15) {
+      this.startVictorySequence();
+      return;
+    }
+
+    this.level = defeatedLevel + 1;
+    this.frameCount = defeatedLevel * 1200;
+    this.levelElement.textContent = this.level;
+  } 
+
+
+
+/*═══════════════════════════════════════════════════════
+                      BOSS 1: EYE BOSS
+═══════════════════════════════════════════════════════*/
+  fireBossArc() {
+    const centerX = this.boss.x + this.boss.width / 2;
+    const centerY = this.boss.y + this.boss.height / 2;
+
+    const projectileCount = 13;
+    const startAngle = 0;
+    const endAngle = Math.PI;
+
+    for (let i = 0; i < projectileCount; i++) {
+      const ratio = i / (projectileCount - 1);
+      const angle = startAngle + ratio * (endAngle - startAngle);
+
+      this.bossProjectiles.push(
+        new BossProjectile(centerX, centerY, angle, 2.1)
+      );
+    }
+  }
+
+  updateBossProjectiles() {
+    for (const projectile of this.bossProjectiles) {
+      projectile.update();
+    }
+
+    this.bossProjectiles = this.bossProjectiles.filter((projectile) => projectile.active);
+  }
+  drawBossProjectiles() {
+    for (const projectile of this.bossProjectiles) {
+      projectile.draw(this.ctx);
+    }
+  }
+
+  checkBulletBossCollisions() {
+    if (!this.bossActive || !this.boss) {
+      return;
+    }
+
+    for (const bullet of this.bullets) {
+      if (isColliding(bullet, this.boss)) {
+        bullet.active = false;
+        this.boss.takeDamage();
+
+        this.explosions.push({
+          x: bullet.x,
+          y: bullet.y,
+          radius: 3,
+          life: 8
+        });
+      }
+    }
+
+    this.bullets = this.bullets.filter((bullet) => bullet.active);
+  }
+  checkBossProjectilePlayerCollisions() {
+    const playerHitbox = this.player.getHitbox();
+
+    for (const projectile of this.bossProjectiles) {
+      if (isColliding(playerHitbox, projectile)) {
+        projectile.active = false;
+        this.damagePlayer();
+        break;
+      }
+    }
+    this.bossProjectiles = this.bossProjectiles.filter(
+      (projectile) => projectile.active
+    );
+  }
+
+/*═══════════════════════════════════════════════════════
+                      BOSS 2: WORM
+═══════════════════════════════════════════════════════*/
+  getWormSegmentHitbox(segment) {
+    return {
+      x: segment.x - segment.radius,
+      y: segment.y - segment.radius,
+      width: segment.radius * 2,
+      height: segment.radius * 2
+    };
+  }
+
+  checkBulletWormBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 10
+    ) {
+      return;
+    }
+
+    for (const bullet of this.bullets) {
+      for (const segment of this.boss.segments) {
+        const segmentHitbox =
+          this.getWormSegmentHitbox(segment);
+
+        if (isColliding(bullet, segmentHitbox)) {
+          bullet.active = false;
+          this.boss.takeDamage();
+
+          this.explosions.push({
+            x: bullet.x,
+            y: bullet.y,
+            radius: 3,
+            life: 8
+          });
+
+          break;
+        }
+      }
+    }
+
+    this.bullets = this.bullets.filter(
+      (bullet) => bullet.active
+    );
+  }
+  checkPlayerWormBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 10
+    ) {
+      return;
+    }
+
+    const playerHitbox = this.player.getHitbox();
+
+    for (const segment of this.boss.segments) {
+      const segmentHitbox =
+        this.getWormSegmentHitbox(segment);
+
+      if (isColliding(playerHitbox, segmentHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
+
+/*═══════════════════════════════════════════════════════
+                      BOSS 3: DRAGON
+═══════════════════════════════════════════════════════*/
+  getDragonHitbox() {
+    return {
+      x:
+        this.boss.x +
+        this.boss.width / 2 -
+        48,
+
+      y:
+        this.boss.y + 45,
+
+      width: 96,
+      height: 115
+    };
+  }
+
+  updateDragonPhaseOne() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 1
+    ) {
+      return;
+    }
+    if (this.boss.phase !== 1) {
+      return;
+    }
+
+    if (this.boss.attackTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    this.dragonFireballs.push(
+      new DragonFireball(
+        mouth.x,
+        mouth.y,
+        this.player.x,
+        this.player.y
+      )
+    );
+
+    this.boss.attackTimer = 110;
+  }
+
+  updateDragonPhaseTwo() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 2
+    ) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    /*
+    * Le dragon doit être arrivé presque au centre
+    * avant que le premier rayon soit créé.
+    */
+    const distanceFromCenter =
+      Math.hypot(
+        this.boss.centerTargetX - this.boss.x,
+        this.boss.centerTargetY - this.boss.y
+      );
+
+    if (distanceFromCenter > 4) {
+      return;
+    }
+
+    if (this.dragonBeams.length === 0) {
+      this.dragonBeams.push(
+        new DragonBeam(0)
+      );
+    }
+
+    const healthRatio =
+      this.boss.health / this.boss.maxHealth;
+
+    /*
+    * À 40 % des PV, ajout d'un rayon perpendiculaire.
+    * PI / 2 correspond à 90 degrés.
+    */
+    if (
+      healthRatio <= 0.4 &&
+      this.dragonBeams.length === 1
+    ) {
+      this.dragonBeams.push(
+        new DragonBeam(Math.PI / 2)
+      );
+    }
+
+    this.dragonBeamAngle += 0.008;
+
+    for (const beam of this.dragonBeams) {
+      beam.update(
+        mouth.x,
+        mouth.y,
+        this.dragonBeamAngle
+      );
+    }
+  }
+
+  updateDragonPhaseThree() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 3
+    ) {
+      return;
+    }
+
+    const distanceFromTarget =
+      Math.hypot(
+        this.boss.centerTargetX - this.boss.x,
+        this.boss.centerTargetY - this.boss.y
+      );
+
+    if (distanceFromTarget > 4) {
+      return;
+    }
+
+    this.updateDragonPhaseThreeFireballs();
+    this.updateDragonPhaseThreeLasers();
+  }
+  updateDragonPhaseThreeFireballs() {
+    if (this.boss.attackTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    this.dragonFireballs.push(
+      new DragonFireball(
+        mouth.x,
+        mouth.y,
+        this.player.x,
+        this.player.y
+      )
+    );
+
+    this.boss.attackTimer = 110;
+  }
+  updateDragonPhaseThreeLasers() {
+    this.dragonLaserTimer--;
+
+    if (this.dragonLaserTimer > 0) {
+      return;
+    }
+
+    const mouth =
+      this.boss.getMouthPosition();
+
+    const angle =
+      Math.random() * Math.PI;
+
+    this.dragonLasers.push(
+      new DragonLaser(
+        mouth.x,
+        mouth.y,
+        angle
+      )
+    );
+
+    this.dragonLaserTimer =
+      100 + Math.floor(Math.random() * 55);
+  }
+  checkBulletDragonBossCollisions() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15
+    ) {
+      return;
+    }
+
+    const dragonHitbox =
+      this.getDragonHitbox();
+
+    for (const bullet of this.bullets) {
+      if (
+        isColliding(
+          bullet,
+          dragonHitbox
+        )
+      ) {
+        bullet.active = false;
+        this.boss.takeDamage();
+
+        this.explosions.push({
+          x: bullet.x,
+          y: bullet.y,
+          radius: 3,
+          life: 8
+        });
+      }
+    }
+
+    this.bullets = this.bullets.filter(
+      (bullet) => bullet.active
+    );
+  }
+
+  checkDragonFireballPlayerCollisions() {
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const fireball of this.dragonFireballs) {
+      const fireballHitbox =
+        fireball.getHitbox();
+
+      if (
+        isColliding(
+          playerHitbox,
+          fireballHitbox
+        )
+      ) {
+        this.damagePlayer();
+
+        if (fireball.state === "flying") {
+          fireball.state = "burning";
+          fireball.vx = 0;
+          fireball.vy = 0;
+          fireball.radius = 30;
+          fireball.updateHitbox();
+        }
+
+        break;
+      }
+    }
+  }
+
+  checkDragonBeamPlayerCollisions() {
+    if (this.dragonBeams.length === 0) {
+      return;
+    }
+
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const beam of this.dragonBeams) {
+      if (beam.isCollidingWith(playerHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
+
+  checkDragonLaserPlayerCollisions() {
+    if (this.dragonLasers.length === 0) {
+      return;
+    }
+
+    const playerHitbox =
+      this.player.getHitbox();
+
+    for (const laser of this.dragonLasers) {
+      if (laser.isCollidingWith(playerHitbox)) {
+        this.damagePlayer();
+        break;
+      }
+    }
+  }
+
+  clearDragonBeamsOutsidePhaseTwo() {
+    if (
+      !this.boss ||
+      this.currentBossLevel !== 15
+    ) {
+      this.dragonBeams = [];
+      return;
+    }
+
+    if (this.boss.phase !== 2) {
+      this.dragonBeams = [];
+    }
+  }
+  updateDragonFireballs() {
+    for (const fireball of this.dragonFireballs) {
+      fireball.update();
+    }
+
+    this.dragonFireballs =
+      this.dragonFireballs.filter(
+        (fireball) => fireball.active
+      );
+  }
+  updateDragonLasers() {
+    for (const laser of this.dragonLasers) {
+      laser.update();
+    }
+
+    this.dragonLasers =
+      this.dragonLasers.filter(
+        (laser) => laser.active
+      );
+  }
+
+/*═══════════════════════════════════════════════════════
+                      COLLISIONS
+═══════════════════════════════════════════════════════*/
+
 
   checkBulletEnemyCollisions() {
     for (const bullet of this.bullets) {
@@ -666,6 +1484,7 @@ this.frameCount = DEV_MODE
         (enemy) => enemy.active
       );
   }
+
   checkBulletSteelEyeCollisions() {
     for (const bullet of this.bullets) {
       for (const enemy of this.steelEyeEnemies) {
@@ -708,6 +1527,7 @@ this.frameCount = DEV_MODE
         (enemy) => enemy.active
       );
   }
+
   checkPlayerBonusCollisions() {
     const playerHitbox = this.player.getHitbox();
 
@@ -729,32 +1549,7 @@ this.frameCount = DEV_MODE
 
     this.bonuses = this.bonuses.filter((bonus) => bonus.active);
   }
-  updateEnemyBullets() {
-    for (const enemy of this.enemies) {
-      if (enemy.constructor.name === "SideEnemy" && enemy.state === "attacking") {
-        enemy.shootTimer--;
-
-        if (enemy.shootTimer <= 0 && enemy.shotsFired < 3) {
-          this.enemyBullets.push(
-            new EnemyBullet(
-              enemy.x + enemy.width / 2,
-              enemy.y + enemy.height / 2,
-              enemy.direction
-            )
-          );
-
-          enemy.shotsFired++;
-          enemy.shootTimer = 25;
-        }
-      }
-    }
-
-    for (const bullet of this.enemyBullets) {
-      bullet.update();
-    }
-
-    this.enemyBullets = this.enemyBullets.filter((bullet) => bullet.active);
-  }
+  
   checkEnemyBulletPlayerCollisions() {
     const playerHitbox = this.player.getHitbox();
 
@@ -770,42 +1565,17 @@ this.frameCount = DEV_MODE
       (bullet) => bullet.active
     );
   }
-
-  tryDropBonus(enemy) {
-    const roll = Math.random();
-
-    if (this.level >= 6 && this.weaponLevel === 1 && roll < 0.08) {
-      this.bonuses.push(
-        new Bonus(
-          enemy.x + enemy.width / 2,
-          enemy.y + enemy.height / 2,
-          BONUS_TYPES.DOUBLE_SHOT
-        )
-      );
+/*═══════════════════════════════════════════════════════
+                      VISUAL EFFECTS
+═══════════════════════════════════════════════════════*/
+  updateExplosions() {
+    for (const explosion of this.explosions) {
+      explosion.radius += 2;
+      explosion.life--;
     }
 
-    if (this.level >= 11 && this.weaponLevel === 2 && roll < 0.02) {
-      this.bonuses.push(
-        new Bonus(
-          enemy.x + enemy.width / 2,
-          enemy.y + enemy.height / 2,
-          BONUS_TYPES.TRIPLE_SHOT
-        )
-      );
-    }
+    this.explosions = this.explosions.filter((explosion) => explosion.life > 0);
   }
-
-  showBonusMessage(text) {
-    this.bonusMessage = text;
-    this.bonusMessageTimer = 120;
-  }
-
-  updateBonusMessage() {
-    if (this.bonusMessageTimer > 0) {
-      this.bonusMessageTimer--;
-    }
-  }
-
   drawExplosions() {
     for (const explosion of this.explosions) {
       this.ctx.save();
@@ -831,7 +1601,6 @@ this.frameCount = DEV_MODE
       this.ctx.restore();
     }
   }
-
   drawBonusMessage() {
     if (this.bonusMessageTimer <= 0) {
       return;
@@ -843,583 +1612,6 @@ this.frameCount = DEV_MODE
     this.ctx.textAlign = "center";
     this.ctx.fillText(this.bonusMessage, this.canvas.width / 2, 40);
     this.ctx.restore();
-  }
-
-   startBossFight(level) {
-    const boss = this.createBoss(level);
-
-    if (!boss) {
-      return;
-    }
-
-    this.boss = boss;
-    this.bossActive = true;
-    this.currentBossLevel = level;
-
-    this.enemies = [];
-    this.meteors = [];
-    this.enemyBullets = [];
-    this.bossProjectiles = [];
-    this.steelEyeEnemies = [];
-    this.dragonBeams = [];
-    this.dragonBeamAngle = 0;
-    this.dragonLasers = [];
-    this.dragonLaserTimer = 100;
-
-    this.showBonusMessage(`BOSS ${level / 5} APPROACHING`);
-  }
-
-  updateBoss() {
-    if (!this.bossActive || !this.boss) {
-      return;
-    }
-
-    this.boss.update();
-
-    // La mort du boss est contrôlée à chaque frame.
-    if (!this.boss.active) {
-      this.finishBossFight();
-      return;
-    }
-
-    // Gestion des attaques du Boss 1.
-    if (
-      this.currentBossLevel == 5 &&
-      this.boss.state === "fighting" &&
-      this.boss.attackTimer <= 0
-    ) {
-      this.fireBossArc();
-
-      const healthRatio =
-        this.boss.health / this.boss.maxHealth;
-
-      if (healthRatio > 0.66) {
-        this.boss.attackTimer = 240;
-      } else if (healthRatio > 0.33) {
-        this.boss.attackTimer = 180;
-      } else {
-        this.boss.attackTimer = 120;
-      }
-    }
-  }
-
-  fireBossArc() {
-    const centerX = this.boss.x + this.boss.width / 2;
-    const centerY = this.boss.y + this.boss.height / 2;
-
-    const projectileCount = 13;
-    const startAngle = 0;
-    const endAngle = Math.PI;
-
-    for (let i = 0; i < projectileCount; i++) {
-      const ratio = i / (projectileCount - 1);
-      const angle = startAngle + ratio * (endAngle - startAngle);
-
-      this.bossProjectiles.push(
-        new BossProjectile(centerX, centerY, angle, 2.1)
-      );
-    }
-  }
-
-  finishBossFight() {
-    const defeatedLevel = this.currentBossLevel;
-
-    this.defeatedBossLevels.add(defeatedLevel);
-
-    this.bossActive = false;
-    this.currentBossLevel = null;
-    this.bossProjectiles = [];
-    this.boss = null;
-
-    this.score += 1000;
-    this.scoreElement.textContent = this.score;
-
-    if (defeatedLevel === 5) {
-      this.hasShield = true;
-      this.showBonusMessage("SHIELD ACQUIRED");
-    }
-    if (defeatedLevel === 10) {
-      if (!this.hasShield) {
-        this.hasShield = true;
-        this.showBonusMessage("SHIELD ACQUIRED");
-      } else {
-        this.showBonusMessage("SHIELD PRESERVED");
-      }
-    }
-    if (defeatedLevel === 15) {
-      this.startVictorySequence();
-      return;
-    }
-
-    this.level = defeatedLevel + 1;
-    this.frameCount = defeatedLevel * 1200;
-    this.levelElement.textContent = this.level;
-  }
-  checkBulletBossCollisions() {
-    if (!this.bossActive || !this.boss) {
-      return;
-    }
-
-    for (const bullet of this.bullets) {
-      if (isColliding(bullet, this.boss)) {
-        bullet.active = false;
-        this.boss.takeDamage();
-
-        this.explosions.push({
-          x: bullet.x,
-          y: bullet.y,
-          radius: 3,
-          life: 8
-        });
-      }
-    }
-
-    this.bullets = this.bullets.filter((bullet) => bullet.active);
-  }
-
-  updateBossProjectiles() {
-    for (const projectile of this.bossProjectiles) {
-      projectile.update();
-    }
-
-    this.bossProjectiles = this.bossProjectiles.filter((projectile) => projectile.active);
-  }
-
-  drawBossProjectiles() {
-    for (const projectile of this.bossProjectiles) {
-      projectile.draw(this.ctx);
-    }
-  }
-
-  checkBossProjectilePlayerCollisions() {
-    const playerHitbox = this.player.getHitbox();
-
-    for (const projectile of this.bossProjectiles) {
-      if (isColliding(playerHitbox, projectile)) {
-        projectile.active = false;
-        this.damagePlayer();
-        break;
-      }
-    }
-    this.bossProjectiles = this.bossProjectiles.filter(
-      (projectile) => projectile.active
-    );
-  }
-  getWormSegmentHitbox(segment) {
-    return {
-      x: segment.x - segment.radius,
-      y: segment.y - segment.radius,
-      width: segment.radius * 2,
-      height: segment.radius * 2
-    };
-  }
-  checkBulletWormBossCollisions() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 10
-    ) {
-      return;
-    }
-
-    for (const bullet of this.bullets) {
-      for (const segment of this.boss.segments) {
-        const segmentHitbox =
-          this.getWormSegmentHitbox(segment);
-
-        if (isColliding(bullet, segmentHitbox)) {
-          bullet.active = false;
-          this.boss.takeDamage();
-
-          this.explosions.push({
-            x: bullet.x,
-            y: bullet.y,
-            radius: 3,
-            life: 8
-          });
-
-          break;
-        }
-      }
-    }
-
-    this.bullets = this.bullets.filter(
-      (bullet) => bullet.active
-    );
-  }
-  checkPlayerWormBossCollisions() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 10
-    ) {
-      return;
-    }
-
-    const playerHitbox = this.player.getHitbox();
-
-    for (const segment of this.boss.segments) {
-      const segmentHitbox =
-        this.getWormSegmentHitbox(segment);
-
-      if (isColliding(playerHitbox, segmentHitbox)) {
-        this.damagePlayer();
-        break;
-      }
-    }
-  }
-  checkBulletDragonBossCollisions() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 15
-    ) {
-      return;
-    }
-
-    const dragonHitbox =
-      this.getDragonHitbox();
-
-    for (const bullet of this.bullets) {
-      if (
-        isColliding(
-          bullet,
-          dragonHitbox
-        )
-      ) {
-        bullet.active = false;
-        this.boss.takeDamage();
-
-        this.explosions.push({
-          x: bullet.x,
-          y: bullet.y,
-          radius: 3,
-          life: 8
-        });
-      }
-    }
-
-    this.bullets = this.bullets.filter(
-      (bullet) => bullet.active
-    );
-  }
-  checkDragonFireballPlayerCollisions() {
-    const playerHitbox =
-      this.player.getHitbox();
-
-    for (const fireball of this.dragonFireballs) {
-      const fireballHitbox =
-        fireball.getHitbox();
-
-      if (
-        isColliding(
-          playerHitbox,
-          fireballHitbox
-        )
-      ) {
-        this.damagePlayer();
-
-        if (fireball.state === "flying") {
-          fireball.state = "burning";
-          fireball.vx = 0;
-          fireball.vy = 0;
-          fireball.radius = 30;
-          fireball.updateHitbox();
-        }
-
-        break;
-      }
-    }
-  }
-  checkDragonBeamPlayerCollisions() {
-    if (this.dragonBeams.length === 0) {
-      return;
-    }
-
-    const playerHitbox =
-      this.player.getHitbox();
-
-    for (const beam of this.dragonBeams) {
-      if (beam.isCollidingWith(playerHitbox)) {
-        this.damagePlayer();
-        break;
-      }
-    }
-  }
-  checkDragonLaserPlayerCollisions() {
-    if (this.dragonLasers.length === 0) {
-      return;
-    }
-
-    const playerHitbox =
-      this.player.getHitbox();
-
-    for (const laser of this.dragonLasers) {
-      if (laser.isCollidingWith(playerHitbox)) {
-        this.damagePlayer();
-        break;
-      }
-    }
-  }
-  getDragonHitbox() {
-    return {
-      x:
-        this.boss.x +
-        this.boss.width / 2 -
-        48,
-
-      y:
-        this.boss.y + 45,
-
-      width: 96,
-      height: 115
-    };
-  }
-  updateDragonPhaseOne() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 15 ||
-      this.boss.state !== "fighting" ||
-      this.boss.phase !== 1
-    ) {
-      return;
-    }
-    if (this.boss.phase !== 1) {
-      return;
-    }
-
-    if (this.boss.attackTimer > 0) {
-      return;
-    }
-
-    const mouth =
-      this.boss.getMouthPosition();
-
-    this.dragonFireballs.push(
-      new DragonFireball(
-        mouth.x,
-        mouth.y,
-        this.player.x,
-        this.player.y
-      )
-    );
-
-    this.boss.attackTimer = 110;
-  }
-
-  updateDragonPhaseTwo() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 15 ||
-      this.boss.state !== "fighting" ||
-      this.boss.phase !== 2
-    ) {
-      return;
-    }
-
-    const mouth =
-      this.boss.getMouthPosition();
-
-    /*
-    * Le dragon doit être arrivé presque au centre
-    * avant que le premier rayon soit créé.
-    */
-    const distanceFromCenter =
-      Math.hypot(
-        this.boss.centerTargetX - this.boss.x,
-        this.boss.centerTargetY - this.boss.y
-      );
-
-    if (distanceFromCenter > 4) {
-      return;
-    }
-
-    if (this.dragonBeams.length === 0) {
-      this.dragonBeams.push(
-        new DragonBeam(0)
-      );
-    }
-
-    const healthRatio =
-      this.boss.health / this.boss.maxHealth;
-
-    /*
-    * À 40 % des PV, ajout d'un rayon perpendiculaire.
-    * PI / 2 correspond à 90 degrés.
-    */
-    if (
-      healthRatio <= 0.4 &&
-      this.dragonBeams.length === 1
-    ) {
-      this.dragonBeams.push(
-        new DragonBeam(Math.PI / 2)
-      );
-    }
-
-    this.dragonBeamAngle += 0.008;
-
-    for (const beam of this.dragonBeams) {
-      beam.update(
-        mouth.x,
-        mouth.y,
-        this.dragonBeamAngle
-      );
-    }
-  }
-
-  updateDragonPhaseThree() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 15 ||
-      this.boss.state !== "fighting" ||
-      this.boss.phase !== 3
-    ) {
-      return;
-    }
-
-    const distanceFromTarget =
-      Math.hypot(
-        this.boss.centerTargetX - this.boss.x,
-        this.boss.centerTargetY - this.boss.y
-      );
-
-    if (distanceFromTarget > 4) {
-      return;
-    }
-
-    this.updateDragonPhaseThreeFireballs();
-    this.updateDragonPhaseThreeLasers();
-  }
-
-
-  updateDragonPhaseThreeFireballs() {
-    if (this.boss.attackTimer > 0) {
-      return;
-    }
-
-    const mouth =
-      this.boss.getMouthPosition();
-
-    this.dragonFireballs.push(
-      new DragonFireball(
-        mouth.x,
-        mouth.y,
-        this.player.x,
-        this.player.y
-      )
-    );
-
-    this.boss.attackTimer = 110;
-  }
-  updateDragonPhaseThreeLasers() {
-    this.dragonLaserTimer--;
-
-    if (this.dragonLaserTimer > 0) {
-      return;
-    }
-
-    const mouth =
-      this.boss.getMouthPosition();
-
-    const angle =
-      Math.random() * Math.PI;
-
-    this.dragonLasers.push(
-      new DragonLaser(
-        mouth.x,
-        mouth.y,
-        angle
-      )
-    );
-
-    this.dragonLaserTimer =
-      100 + Math.floor(Math.random() * 55);
-  }
-  clearDragonBeamsOutsidePhaseTwo() {
-    if (
-      !this.boss ||
-      this.currentBossLevel !== 15
-    ) {
-      this.dragonBeams = [];
-      return;
-    }
-
-    if (this.boss.phase !== 2) {
-      this.dragonBeams = [];
-    }
-  }
-  updateDragonFireballs() {
-    for (const fireball of this.dragonFireballs) {
-      fireball.update();
-    }
-
-    this.dragonFireballs =
-      this.dragonFireballs.filter(
-        (fireball) => fireball.active
-      );
-  }
-  updateDragonLasers() {
-    for (const laser of this.dragonLasers) {
-      laser.update();
-    }
-
-    this.dragonLasers =
-      this.dragonLasers.filter(
-        (laser) => laser.active
-      );
-  }
-  damagePlayer() {
-    if (this.damageCooldown > 0) {
-      return;
-    }
-
-    if (this.hasShield) {
-      this.hasShield = false;
-      this.showBonusMessage("SHIELD LOST");
-
-      this.explosions.push({
-        x: this.player.x,
-        y: this.player.y + this.player.height / 2,
-        radius: 6,
-        life: 12
-      });
-
-      return;
-    }
-
-    this.endGame();
-  }
-
-  winGame() {
-    this.isRunning = false;
-    this.gameOver = true;
-
-    this.messageElement.textContent =
-      `Victory — Final Score: ${this.score}`;
-    window.handleGameOver("space-runner", this.score);
-  }
-
-  endGame() {
-    if (this.gameOver) {
-      return;
-    }
-
-    this.gameOver = true;
-    this.isRunning = false;
-    this.playerVisible = false;
-
-    this.explosions.push({
-      x: this.player.x,
-      y: this.player.y + this.player.height / 2,
-      radius: 8,
-      life: 25
-    });
-
-    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
-    window.handleGameOver("space-runner", this.score);
   }
   drawVictoryTitle() {
     if (!this.victoryTitleVisible) {
@@ -1519,85 +1711,5 @@ this.frameCount = DEV_MODE
     );
 
     this.ctx.restore();
-  }
-  startVictorySequence() {
-    this.victorySequence = true;
-
-    this.boss = null;
-    this.bossActive = false;
-    this.currentBossLevel = null;
-
-    this.bullets = [];
-    this.enemies = [];
-    this.meteors = [];
-    this.enemyBullets = [];
-    this.bossProjectiles = [];
-    this.dragonFireballs = [];
-    this.dragonBeams = [];
-    this.dragonLasers = [];
-    this.steelEyeEnemies = [];
-    this.bonuses = [];
-
-    this.victoryPortal = new VictoryPortal();
-
-    this.showBonusMessage("VICTORY");
-  }
-  updateVictorySequence() {
-    if (!this.victoryPortal) {
-      return;
-    }
-
-    this.victoryPortal.update();
-
-    if (!this.victoryPortal.opened) {
-      return;
-    }
-
-    const targetX = this.victoryPortal.x;
-    const targetY = this.victoryPortal.y;
-
-    const dx = targetX - this.player.x;
-    const dy = targetY - this.player.y;
-
-    const distance = Math.hypot(dx, dy);
-
-    if (distance > 8) {
-      const speed = 1.2;
-
-      this.player.x +=
-        (dx / distance) * speed;
-
-      this.player.y +=
-        (dy / distance) * speed;
-
-      return;
-    }
-
-    this.player.x = targetX;
-    this.player.y = targetY;
-
-    this.playerVictoryScale -= 0.025;
-
-    if (this.playerVictoryScale <= 0) {
-      this.playerVictoryScale = 0;
-      this.playerVisible = false;
-
-      this.victoryTitleVisible = true;
-
-      if (this.victoryTitleProgress < 1) {
-        this.victoryTitleProgress += 0.018;
-      } else {
-        this.victoryTitleProgress = 1;
-        this.victoryTitleTimer++;
-      }
-
-      if (
-        this.victoryTitleTimer >= 150 &&
-        !this.victoryFinished
-      ) {
-        this.victoryFinished = true;
-        this.winGame();
-      }
-    }
   }
 }
