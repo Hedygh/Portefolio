@@ -58,7 +58,7 @@ export class Game {
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = DEV_MODE ? 3 : 1;
+    this.weaponLevel = DEV_MODE ? 2 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -130,7 +130,7 @@ this.frameCount = DEV_MODE
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = DEV_MODE ? 3 : 1;
+    this.weaponLevel = DEV_MODE ? 2 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -608,9 +608,9 @@ this.frameCount = DEV_MODE
     }
 
     if (this.level <= 14) {
-      if (roll < 0.35) {
+      if (roll < 0.40) {
         this.enemies.push(new Enemy(this.level));
-      } else if (roll < 0.50) {
+      } else if (roll < 0.45) {
         this.enemies.push(new SideEnemy(this.level));
       } else {
         this.steelEyeEnemies.push(
@@ -767,16 +767,6 @@ this.frameCount = DEV_MODE
         )
       );
     }
-
-    if (this.level >= 11 && this.weaponLevel === 2 && roll < 0.02) {
-      this.bonuses.push(
-        new Bonus(
-          enemy.x + enemy.width / 2,
-          enemy.y + enemy.height / 2,
-          BONUS_TYPES.TRIPLE_SHOT
-        )
-      );
-    }
   }
   updateBonuses() {
     for (const bonus of this.bonuses) {
@@ -885,11 +875,17 @@ this.frameCount = DEV_MODE
       this.showBonusMessage("SHIELD ACQUIRED");
     }
     if (defeatedLevel === 10) {
+      this.weaponLevel = 3;
+
       if (!this.hasShield) {
         this.hasShield = true;
-        this.showBonusMessage("SHIELD ACQUIRED");
+        this.showBonusMessage(
+        "SHIELD + TRIPLE SHOT ACQUIRED"
+        );
       } else {
-        this.showBonusMessage("SHIELD PRESERVED");
+        this.showBonusMessage(
+          "TRIPLE SHOT ACQUIRED"
+       );
       }
     }
     if (defeatedLevel === 15) {
@@ -1549,7 +1545,7 @@ this.frameCount = DEV_MODE
 
     this.bonuses = this.bonuses.filter((bonus) => bonus.active);
   }
-  
+
   checkEnemyBulletPlayerCollisions() {
     const playerHitbox = this.player.getHitbox();
 
