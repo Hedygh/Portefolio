@@ -3,7 +3,7 @@ export const keys = {
   right: false,
   up: false,
   down: false,
-  shoot: false
+  shoot: false,
 };
 
 export function setupInput() {
@@ -17,6 +17,7 @@ export function setupInput() {
     if (event.key === "ArrowRight" || key === "d") {
       keys.right = true;
     }
+
     if (event.key === "ArrowUp" || key === "z") {
       keys.up = true;
     }
@@ -24,6 +25,7 @@ export function setupInput() {
     if (event.key === "ArrowDown" || key === "s") {
       keys.down = true;
     }
+
     if (event.code === "Space") {
       event.preventDefault();
       keys.shoot = true;
@@ -47,7 +49,7 @@ export function setupInput() {
 
     if (event.key === "ArrowDown" || key === "s") {
       keys.down = false;
-    }  
+    }
 
     if (event.code === "Space") {
       event.preventDefault();
@@ -55,3 +57,5 @@ export function setupInput() {
     }
   });
 }
+
+setupInput();

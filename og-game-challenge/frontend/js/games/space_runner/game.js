@@ -16,6 +16,7 @@ import { DragonFireball } from "./dragonFireballs.js";
 import { DragonBeam } from "./dragonBeams.js";
 import { DragonLaser } from "./dragonLasers.js";
 import { VictoryPortal } from "./victoryPortal.js";
+import { BossDeathSequence } from "./bossDeathSequence.js";
 
 import {
   DEV_MODE,
@@ -58,7 +59,7 @@ export class Game {
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = DEV_MODE ? 2 : 1;
+    this.weaponLevel = DEV_MODE ? 3 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -66,7 +67,12 @@ export class Game {
     this.bossActive = false;
     this.currentBossLevel = null;
     this.defeatedBossLevels = new Set();
-    this.hasShield = false;
+
+
+    this.bossDeathSequence = null;
+    this.bossDeathActive = false;
+
+    this.hasShield = DEV_MODE ? true : false;
     this.damageCooldown = 0;
     this.bossProjectiles = [];
 
@@ -79,6 +85,7 @@ export class Game {
     this.isRunning = false;
     this.animationId = null;
 
+
  //fin de jeu
     this.victorySequence = false;
     this.victoryPortal = null;
@@ -88,6 +95,23 @@ export class Game {
     this.victoryTitleVisible = false;
     this.victoryTitleProgress = 0;
     this.victoryTitleTimer = 0;
+
+// pause
+    this.paused = false;
+    this.pauseKeyWasPressed = false;
+    this.pauseButton = {
+      x: this.canvas.width - 70,
+      y: 15,
+      width: 55,
+      height: 32
+    };
+
+    this.canvas.addEventListener(
+      "click",
+      (event) => {
+        this.handleCanvasClick(event);
+      }
+    );
   }
   
 /*═══════════════════════════════════════════════════════
@@ -130,7 +154,7 @@ this.frameCount = DEV_MODE
     this.enemySpawnTimer = 0;
     this.meteorSpawnTimer = 0;
 
-    this.weaponLevel = DEV_MODE ? 2 : 1;
+    this.weaponLevel = DEV_MODE ? 3 : 1;
     this.bonusMessage = "";
     this.bonusMessageTimer = 0;
 
@@ -138,7 +162,13 @@ this.frameCount = DEV_MODE
     this.bossActive = false;
     this.currentBossLevel = null;
     this.defeatedBossLevels = new Set();
-    this.hasShield = false;
+
+
+    this.bossDeathSequence = null;
+    this.bossDeathActive = false;
+
+
+    this.hasShield = DEV_MODE ? true : false;
     this.damageCooldown = 0;
     this.bossProjectiles = [];
 
@@ -149,16 +179,25 @@ this.frameCount = DEV_MODE
     this.gameOver = false;
     this.playerVisible = true;
 
+
     this.victorySequence = false;
     this.victoryPortal = null;
     this.playerVictoryScale = 1;
     this.victoryFinished = false;
+
+    // pause
+    this.paused = false;
+    this.pauseKeyWasPressed = false;
 
     cancelAnimationFrame(this.animationId);
     this.loop();
   }
 
   update() {
+    if (this.paused) {
+      return;
+    }
+
     if (this.damageCooldown > 0) {
       this.damageCooldown--;
     }
@@ -166,6 +205,23 @@ this.frameCount = DEV_MODE
     if (this.level === 15 || this.currentBossLevel === 15) {
       this.finalBossBackground.update();
     }
+    if (this.bossDeathActive && this.bossDeathSequence) {
+      // Le joueur peut encore se déplacer pendant la cinématique.
+      this.player.update();
+      this.updateBullets();
+      // Mise à jour des explosions et des particules du boss.
+      this.bossDeathSequence.update();
+      this.updateExplosions();
+    
+      if (this.bossDeathSequence.finished) {
+        this.bossDeathActive = false;
+        this.bossDeathSequence = null;
+
+        this.finishBossFight();
+      }
+      return;
+    }
+
     if (this.victorySequence) {
       this.updateVictorySequence();
     } else {
@@ -250,10 +306,19 @@ this.frameCount = DEV_MODE
     this.checkDragonLaserPlayerCollisions();
   }
   draw() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
 
     this.background.draw(this.ctx);
-    if (this.level === 15 || this.currentBossLevel === 15) {
+
+    if (
+      this.level === 15 ||
+      this.currentBossLevel === 15
+    ) {
       this.finalBossBackground.draw(this.ctx);
     }
 
@@ -264,6 +329,7 @@ this.frameCount = DEV_MODE
     for (const enemy of this.enemies) {
       enemy.draw(this.ctx);
     }
+
     for (const enemy of this.steelEyeEnemies) {
       enemy.draw(this.ctx);
     }
@@ -277,20 +343,20 @@ this.frameCount = DEV_MODE
     }
 
     for (const enemyBullet of this.enemyBullets) {
-    enemyBullet.draw(this.ctx);
+      enemyBullet.draw(this.ctx);
     }
 
-    if (this.boss) {
+    if (
+      this.boss &&
+      !this.bossDeathActive
+    ) {
       this.boss.draw(this.ctx);
     }
 
-    for (const beam of this.dragonBeams) {
-      beam.draw(this.ctx);
+    if (this.bossDeathSequence) {
+      this.bossDeathSequence.draw(this.ctx);
     }
 
-    for (const fireball of this.dragonFireballs) {
-      fireball.draw(this.ctx);
-    }
     for (const beam of this.dragonBeams) {
       beam.draw(this.ctx);
     }
@@ -302,9 +368,11 @@ this.frameCount = DEV_MODE
     for (const laser of this.dragonLasers) {
       laser.draw(this.ctx);
     }
+
     if (this.victoryPortal) {
       this.victoryPortal.draw(this.ctx);
     }
+
     if (this.playerVisible) {
       if (this.victorySequence) {
         this.ctx.save();
@@ -340,6 +408,113 @@ this.frameCount = DEV_MODE
     this.drawBonusMessage();
     this.drawBossProjectiles();
     this.drawVictoryTitle();
+
+    if (this.paused) {
+      this.ctx.save();
+
+      this.ctx.fillStyle =
+        "rgba(0, 0, 0, 0.55)";
+
+      this.ctx.fillRect(
+        0,
+        0,
+        this.canvas.width,
+        this.canvas.height
+      );
+
+      this.ctx.fillStyle = "white";
+      this.ctx.textAlign = "center";
+
+      this.ctx.font =
+        "bold 48px Arial";
+
+      this.ctx.fillText(
+        "PAUSED",
+        this.canvas.width / 2,
+        this.canvas.height / 2
+      );
+
+      this.ctx.font =
+        "18px Arial";
+
+      this.ctx.fillText(
+        "Press P to continue",
+        this.canvas.width / 2,
+        this.canvas.height / 2 + 45
+      );
+
+      this.ctx.restore();
+    }
+
+    this.drawPauseButton();
+  }
+
+  drawPauseButton() {
+    const button = this.pauseButton;
+
+    this.ctx.save();
+
+    this.ctx.fillStyle =
+      "rgba(0, 0, 0, 0.55)";
+
+    this.ctx.fillRect(
+      button.x,
+      button.y,
+      button.width,
+      button.height
+    );
+
+    this.ctx.strokeStyle = "white";
+    this.ctx.lineWidth = 2;
+
+    this.ctx.strokeRect(
+      button.x,
+      button.y,
+      button.width,
+      button.height
+    );
+
+    this.ctx.fillStyle = "white";
+    this.ctx.font = "16px monospace";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
+    this.ctx.fillText(
+      this.paused ? "▶" : "||",
+      button.x + button.width / 2,
+      button.y + button.height / 2
+    );
+
+    this.ctx.restore();
+  }
+
+  handleCanvasClick(event) {
+    const rect =
+      this.canvas.getBoundingClientRect();
+
+    const scaleX =
+      this.canvas.width / rect.width;
+
+    const scaleY =
+      this.canvas.height / rect.height;
+
+    const mouseX =
+      (event.clientX - rect.left) * scaleX;
+
+    const mouseY =
+      (event.clientY - rect.top) * scaleY;
+
+    const button = this.pauseButton;
+
+    const insideButton =
+      mouseX >= button.x &&
+      mouseX <= button.x + button.width &&
+      mouseY >= button.y &&
+      mouseY <= button.y + button.height;
+
+    if (insideButton) {
+      this.togglePause();
+    }
   }
 
   loop() {
@@ -356,7 +531,7 @@ this.frameCount = DEV_MODE
 /*═══════════════════════════════════════════════════════
                       GAME FLOW
 ═══════════════════════════════════════════════════════*/
- startVictorySequence() {
+  startVictorySequence() {
     this.victorySequence = true;
 
     this.boss = null;
@@ -472,6 +647,8 @@ this.frameCount = DEV_MODE
 
     if (this.hasShield) {
       this.hasShield = false;
+      //short invul
+      this.damageCooldown = 60;
       this.showBonusMessage("SHIELD LOST");
 
       this.explosions.push({
@@ -485,6 +662,14 @@ this.frameCount = DEV_MODE
     }
 
     this.endGame();
+  }
+
+ togglePause() {
+    if (!this.isRunning || this.gameOver || this.victoryFinished) {
+      return;
+    }
+
+    this.paused = !this.paused;
   }
 /*═══════════════════════════════════════════════════════
                       LEVEL / GAME PROGRESSION
@@ -516,6 +701,26 @@ this.frameCount = DEV_MODE
     }
     this.levelElement.textContent = this.level;
 
+    // Prépare le prochain boss un peu avant son niveau.
+    const nextBossLevel = this.level + 1;
+
+    if (this.isBossLevel(nextBossLevel)) {
+      const bossFrame =
+        (nextBossLevel - 1) * 1200;
+
+      const transitionAdvance = 120;
+
+      if (
+        this.frameCount >= bossFrame - transitionAdvance &&
+        !this.defeatedBossLevels.has(nextBossLevel) &&
+        this.canCreateBoss(nextBossLevel)
+      ) {
+        this.startBossTransition(nextBossLevel);
+        return;
+      }
+    }
+
+    // Sécurité : déclenchement normal si nécessaire.
     if (this.shouldStartBossFight(this.level)) {
       this.startBossTransition(this.level);
     }
@@ -536,6 +741,8 @@ this.frameCount = DEV_MODE
   }
 
   startBossTransition(level) {
+    this.bossTransitionTimer = 0;
+
     if (this.bossTransition || this.bossActive) {
       return;
     }
@@ -545,10 +752,13 @@ this.frameCount = DEV_MODE
 
     this.showBonusMessage("BOSS APPROACHING");
   }
+
   updateBossTransition() {
     if (!this.bossTransition) {
       return;
     }
+
+    this.bossTransitionTimer++;
 
     const enemiesRemaining =
       this.enemies.length > 0;
@@ -562,12 +772,17 @@ this.frameCount = DEV_MODE
     const enemyBulletsRemaining =
       this.enemyBullets.length > 0;
 
-    if (
-      enemiesRemaining ||
-      meteorsRemaining ||
-      steelEyesRemaining ||
-      enemyBulletsRemaining
-    ) {
+    const screenIsClear =
+      !enemiesRemaining &&
+      !meteorsRemaining &&
+      !steelEyesRemaining &&
+      !enemyBulletsRemaining;
+
+    // 3 secondes maximum à 60 FPS.
+    const maxWaitReached =
+      this.bossTransitionTimer >= 180;
+
+    if (!screenIsClear && !maxWaitReached) {
       return;
     }
 
@@ -575,6 +790,7 @@ this.frameCount = DEV_MODE
 
     this.bossTransition = false;
     this.pendingBossLevel = null;
+    this.bossTransitionTimer = 0;
 
     this.startBossFight(bossLevel);
   }
@@ -726,7 +942,7 @@ this.frameCount = DEV_MODE
       );
   }
 
- updateEnemyBullets() {
+  updateEnemyBullets() {
     for (const enemy of this.enemies) {
       if (enemy.constructor.name === "SideEnemy" && enemy.state === "attacking") {
         enemy.shootTimer--;
@@ -787,8 +1003,6 @@ this.frameCount = DEV_MODE
   }
 
 
-
-
 /*═══════════════════════════════════════════════════════
                       BOSS MANAGEMENT
 ═══════════════════════════════════════════════════════*/
@@ -831,15 +1045,25 @@ this.frameCount = DEV_MODE
 
     this.boss.update();
 
-    // La mort du boss est contrôlée à chaque frame.
-    if (!this.boss.active) {
-      this.finishBossFight();
+    // Déclenche la cinématique lorsque le boss devient inactif.
+    if (!this.boss.active && !this.bossDeathActive) {
+      let bossType = "default";
+
+      if (this.currentBossLevel === 5) {
+        bossType = "eye";
+      } else if (this.currentBossLevel === 10) {
+        bossType = "worm";
+      } else if (this.currentBossLevel === 15) {
+        bossType = "dragon";
+      }
+
+      this.startBossDeathSequence(bossType);
       return;
     }
 
     // Gestion des attaques du Boss 1.
     if (
-      this.currentBossLevel == 5 &&
+      this.currentBossLevel === 5 &&
       this.boss.state === "fighting" &&
       this.boss.attackTimer <= 0
     ) {
@@ -856,6 +1080,25 @@ this.frameCount = DEV_MODE
         this.boss.attackTimer = 120;
       }
     }
+  }
+
+ startBossDeathSequence(bossType) {
+    if (!this.boss || this.bossDeathActive) {
+      return;
+    }
+
+    this.bossDeathActive = true;
+
+    this.bossDeathSequence = new BossDeathSequence(
+      this.boss,
+      bossType
+    );
+
+    // Le boss ne peut plus attaquer.
+    this.bossProjectiles = [];
+    this.dragonFireballs = [];
+    this.dragonBeams = [];
+    this.dragonLasers = [];
   }
  finishBossFight() {
     const defeatedLevel = this.currentBossLevel;
@@ -896,7 +1139,8 @@ this.frameCount = DEV_MODE
     this.level = defeatedLevel + 1;
     this.frameCount = defeatedLevel * 1200;
     this.levelElement.textContent = this.level;
-  } 
+  }
+
 
 
 

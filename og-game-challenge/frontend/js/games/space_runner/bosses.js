@@ -125,8 +125,8 @@ export class WormBoss {
     this.speed = 1.7;
     this.active = true;
 
-    this.health = 600;
-    this.maxHealth = 600;
+    this.health = 500;
+    this.maxHealth = 500;
 
     this.state = "entering";
 
@@ -548,8 +548,8 @@ export class DragonBoss {
 
     this.active = true;
 
-    this.health = 900;
-    this.maxHealth = 900;
+    this.health = 850;
+    this.maxHealth = 850;
     this.attackTimer = 110;
     this.state = "entering";
     this.phase = 1;

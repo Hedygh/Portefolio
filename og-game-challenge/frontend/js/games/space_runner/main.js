@@ -11,6 +11,18 @@ setupInput();
 
 const game = new Game(canvas, scoreElement, levelElement, gameMessage);
 
+document.addEventListener("keydown", (event) => {
+  if (event.repeat) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+
+  if (key === "p") {
+      event.preventDefault();
+      game.togglePause();
+    }
+});
 startBtn.addEventListener("click", function () {
   game.start();
 });
