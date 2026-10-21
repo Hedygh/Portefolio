@@ -1,6 +1,7 @@
 export const BONUS_TYPES = {
   DOUBLE_SHOT: "double_shot",
-  TRIPLE_SHOT: "triple_shot"
+  TRIPLE_SHOT: "triple_shot",
+  SHIELD: "shield"
 };
 
 export class Bonus {
@@ -25,7 +26,21 @@ export class Bonus {
   draw(ctx) {
     ctx.save();
 
-    ctx.fillStyle = this.type === BONUS_TYPES.DOUBLE_SHOT ? "#00ff66" : "#ffcc00";
+    let color;
+    let symbol;
+
+    if (this.type === BONUS_TYPES.DOUBLE_SHOT) {
+      color = "#00ff66";
+      symbol = "II";
+    } else if (this.type === BONUS_TYPES.TRIPLE_SHOT) {
+      color = "#ffcc00";
+      symbol = "III";
+    } else if (this.type === BONUS_TYPES.SHIELD) {
+      color = "#00ccff";
+      symbol = "S";
+    }
+
+    ctx.fillStyle = color;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
 
@@ -38,7 +53,7 @@ export class Bonus {
     ctx.textBaseline = "middle";
 
     ctx.fillText(
-      this.type === BONUS_TYPES.DOUBLE_SHOT ? "II" : "III",
+      symbol,
       this.x + this.width / 2,
       this.y + this.height / 2
     );

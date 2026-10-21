@@ -70,22 +70,113 @@ export class SideEnemy {
       ctx.scale(-1, 1);
     }
 
-    ctx.fillStyle = this.state === "attacking" ? "#003366" : "#002244";
-    ctx.strokeStyle = "#00aaff";
-    ctx.lineWidth = 2;
+    const w = this.width;
+    const h = this.height;
+
+    // ═══════════════════════════════════════
+    // COQUE PRINCIPALE
+    // ═══════════════════════════════════════
+
+    const hull = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    hull.addColorStop(0, "#123c66");
+    hull.addColorStop(0.5, "#10243d");
+    hull.addColorStop(1, "#050d20");
 
     ctx.beginPath();
-    ctx.moveTo(this.width / 2, 0);
-    ctx.lineTo(-this.width / 2, -this.height / 2);
-    ctx.lineTo(-this.width / 3, 0);
-    ctx.lineTo(-this.width / 2, this.height / 2);
+    ctx.moveTo(w / 2, 0);
+    ctx.lineTo(-w / 2, -h / 2);
+    ctx.lineTo(-w / 3, 0);
+    ctx.lineTo(-w / 2, h / 2);
     ctx.closePath();
 
+    ctx.fillStyle = hull;
     ctx.fill();
-    ctx.stroke();
 
-    ctx.fillStyle = this.state === "attacking" ? "#ffffff" : "#00aaff";
-    ctx.fillRect(-6, -4, 12, 8);
+    // Contour néon
+    ctx.shadowColor = "#00aaff";
+    ctx.shadowBlur = 2;
+    ctx.strokeStyle = "#00bbff";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // ═══════════════════════════════════════
+    // BLINDAGE MÉTALLIQUE
+    // ═══════════════════════════════════════
+
+    ctx.fillStyle = "#8c929e";
+
+    // Aileron supérieur
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.36, -h * 0.38);
+    ctx.lineTo(w * 0.18, -h * 0.12);
+    ctx.lineTo(-w * 0.14, -h * 0.08);
+    ctx.closePath();
+    ctx.fill();
+
+    // Aileron inférieur
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.36, h * 0.38);
+    ctx.lineTo(w * 0.18, h * 0.12);
+    ctx.lineTo(-w * 0.14, h * 0.08);
+    ctx.closePath();
+    ctx.fill();
+
+    // Plaque centrale
+    ctx.fillStyle = "#333946";
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.22, -h * 0.15);
+    ctx.lineTo(w * 0.32, 0);
+    ctx.lineTo(-w * 0.22, h * 0.15);
+    ctx.closePath();
+    ctx.fill();
+
+    // ═══════════════════════════════════════
+    // NOYAU ÉNERGÉTIQUE
+    // ═══════════════════════════════════════
+
+    const coreX = -w * 0.08;
+    const coreRadius = 4.5;
+
+    ctx.shadowColor = "#00aaff";
+    ctx.shadowBlur = this.state === "attacking" ? 5 : 2;
+
+    ctx.beginPath();
+    ctx.arc(coreX, 0, coreRadius + 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#003366";
+    ctx.fill();
+
+    const core = ctx.createRadialGradient(
+      coreX - 1, -1, 0,
+      coreX, 0, coreRadius
+    );
+
+    core.addColorStop(0, "#ffffff");
+    core.addColorStop(0.35, "#aaddff");
+    core.addColorStop(0.75, "#00aaff");
+    core.addColorStop(1, "#0055aa");
+
+    ctx.beginPath();
+    ctx.arc(coreX, 0, coreRadius, 0, Math.PI * 2);
+    ctx.fillStyle = core;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // ═══════════════════════════════════════
+    // DÉTAILS LUMINEUX
+    // ═══════════════════════════════════════
+
+    ctx.strokeStyle = "#66ddff";
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.33, -h * 0.3);
+    ctx.lineTo(w * 0.12, -h * 0.1);
+
+    ctx.moveTo(-w * 0.33, h * 0.3);
+    ctx.lineTo(w * 0.12, h * 0.1);
+    ctx.stroke();
 
     ctx.restore();
   }

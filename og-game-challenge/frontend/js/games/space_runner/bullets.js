@@ -1,11 +1,13 @@
 export class Bullet {
-  constructor(x, y) {
+  constructor(x, y, weaponLevel = 1) {
     this.x = x;
     this.y = y;
     this.width = 4;
     this.height = 14;
     this.speed = 8;
     this.active = true;
+
+    this.weaponLevel = weaponLevel;
   }
 
   update() {
@@ -17,7 +19,24 @@ export class Bullet {
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#00ff66";
-    ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
+    const triple = this.weaponLevel >= 3;
+
+    ctx.save();
+
+    ctx.fillStyle = triple ? "#bb44ff" : "#00ff66";
+
+    if (triple) {
+      ctx.shadowColor = "#bb44ff";
+      ctx.shadowBlur = 8;
+    }
+
+    ctx.fillRect(
+      this.x - this.width / 2,
+      this.y,
+      this.width,
+      this.height
+    );
+
+    ctx.restore();
   }
 }

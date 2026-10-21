@@ -27,7 +27,7 @@ startBtn.addEventListener("click", function () {
   game.start();
 });
 
-game.draw();
+game.intro.drawPreview(game.ctx);
 
 // ═══════════════════════════════════════
 // EXPAND MODE
@@ -55,12 +55,21 @@ if (expandBtn && exitExpandBtn && gameLayout) {
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      document.body.classList.remove("space-runner-expanded");
-      gameLayout.classList.remove("space-runner-layout--expanded");
+    if (event.repeat) {
+      return;
+    }
 
-      expandBtn.hidden = false;
-      exitExpandBtn.hidden = true;
+    const key = event.key.toLowerCase();
+
+    if (key === "p") {
+      event.preventDefault();
+      game.togglePause();
+    }
+
+    // Passer la cinématique d'introduction
+    if (event.code === "Space" && game.introActive) {
+      event.preventDefault();
+      game.skipIntro();
     }
   });
 }

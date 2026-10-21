@@ -17,6 +17,8 @@ import { DragonBeam } from "./dragonBeams.js";
 import { DragonLaser } from "./dragonLasers.js";
 import { VictoryPortal } from "./victoryPortal.js";
 import { BossDeathSequence } from "./bossDeathSequence.js";
+import { AudioManager } from "./audioManager.js";
+import { Intro } from "./intro.js";
 
 import {
   DEV_MODE,
@@ -34,6 +36,12 @@ export class Game {
 
     this.player = new Player();
     this.background = new StarBackground();
+
+    // intro
+    this.intro = new Intro(this.canvas, this.background);
+    this.introActive = false;
+    this.lastFrameTime = null;
+
     this.finalBossBackground = new FinalBossBackground();
     this.lastDragonPhase = 1;
 
@@ -85,6 +93,11 @@ export class Game {
     this.isRunning = false;
     this.animationId = null;
 
+    // joueur mort 
+
+    this.playerDeathActive = false;
+    this.playerDeathTimer = 0;
+    this.playerDeathRotation = 0;
 
  //fin de jeu
     this.victorySequence = false;
@@ -112,6 +125,11 @@ export class Game {
         this.handleCanvasClick(event);
       }
     );
+
+
+    // audio
+    this.audio = new AudioManager();
+    this.shootSoundCooldown = 0;
   }
   
 /*═══════════════════════════════════════════════════════
@@ -179,6 +197,17 @@ this.frameCount = DEV_MODE
     this.gameOver = false;
     this.playerVisible = true;
 
+    // introduction désactivée en DEVMOD.
+    this.introActive = !DEV_MODE;
+
+    if (this.introActive) {
+      this.intro.start();
+      this.audio.playMusic("backgroundMusic");
+    }
+
+    this.playerDeathActive = false;
+    this.playerDeathTimer = 0;
+    this.playerDeathRotation = 0;
 
     this.victorySequence = false;
     this.victoryPortal = null;
@@ -190,13 +219,27 @@ this.frameCount = DEV_MODE
     this.pauseKeyWasPressed = false;
 
     cancelAnimationFrame(this.animationId);
+
+    this.lastFrameTime = null;
+    this.shootSoundCooldown = 0;
+
+    if (!this.introActive) {
+      this.audio.playMusic("backgroundMusic");
+    }
+
     this.loop();
   }
 
   update() {
+    if (this.introActive) {
+      return;
+    }
     if (this.paused) {
       return;
     }
+      // Synchronisation du niveau d'armement et animation d'amélioration
+    this.player.setWeaponLevel(this.weaponLevel);
+    this.player.updateUpgradeGlow();
 
     if (this.damageCooldown > 0) {
       this.damageCooldown--;
@@ -205,6 +248,13 @@ this.frameCount = DEV_MODE
     if (this.level === 15 || this.currentBossLevel === 15) {
       this.finalBossBackground.update();
     }
+
+    if (this.playerDeathActive) {
+      this.updatePlayerDeath();
+      this.updateExplosions();
+      return;
+    }
+
     if (this.bossDeathActive && this.bossDeathSequence) {
       // Le joueur peut encore se déplacer pendant la cinématique.
       this.player.update();
@@ -238,6 +288,12 @@ this.frameCount = DEV_MODE
     if (this.bossActive) {
       this.updateBoss();
 
+      // Les ennemis présents avant l'arrivée du boss
+      // continuent naturellement leur trajectoire.
+      this.updateEnemies();
+      this.updateMeteors();
+      this.updateSteelEyeEnemies();
+
       if (this.currentBossLevel === 5) {
         this.checkBulletBossCollisions();
       }
@@ -258,6 +314,8 @@ this.frameCount = DEV_MODE
         this.lastDragonPhase === 2 &&
         this.boss.phase === 3
       ) {
+
+        this.audio.stopMusic("laserLoop");
         this.dragonBeams = [];
         this.dragonFireballs = [];
         this.dragonLasers = [];
@@ -306,6 +364,12 @@ this.frameCount = DEV_MODE
     this.checkDragonLaserPlayerCollisions();
   }
   draw() {
+
+    if (this.introActive) {
+      this.intro.draw(this.ctx);
+      return;
+    }
+
     this.ctx.clearRect(
       0,
       0,
@@ -395,6 +459,26 @@ this.frameCount = DEV_MODE
         this.player.draw(this.ctx);
 
         this.ctx.restore();
+      } else if (this.playerDeathActive) {
+        this.ctx.save();
+
+        this.ctx.translate(
+          this.player.x,
+          this.player.y
+        );
+
+        this.ctx.rotate(
+          this.playerDeathRotation
+        );
+
+        this.ctx.translate(
+          -this.player.x,
+          -this.player.y
+        );
+
+        this.player.draw(this.ctx);
+
+        this.ctx.restore();
       } else {
         this.player.draw(this.ctx);
 
@@ -447,6 +531,37 @@ this.frameCount = DEV_MODE
     }
 
     this.drawPauseButton();
+
+    if (this.gameOver && !this.victoryFinished) {
+    this.ctx.save();
+
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    this.ctx.fillRect(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
+
+    this.ctx.fillStyle = "white";
+    this.ctx.textAlign = "center";
+
+    this.ctx.font = "bold 48px Arial";
+    this.ctx.fillText(
+      "GAME OVER",
+      this.canvas.width / 2,
+      this.canvas.height / 2
+    );
+
+    this.ctx.font = "20px Arial";
+    this.ctx.fillText(
+      `Score: ${this.score}`,
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 45
+    );
+
+    this.ctx.restore();
+  }
   }
 
   drawPauseButton() {
@@ -517,15 +632,57 @@ this.frameCount = DEV_MODE
     }
   }
 
-  loop() {
+  loop(timestamp) {
     if (!this.isRunning && this.explosions.length === 0) {
       return;
     }
 
-    this.update();
+    if (this.lastFrameTime === null) {
+      this.lastFrameTime = timestamp ?? performance.now();
+    }
+
+    const now = timestamp ?? performance.now();
+    const deltaTime = Math.min(now - this.lastFrameTime, 100);
+
+    this.lastFrameTime = now;
+
+    if (this.introActive) {
+      this.intro.update(deltaTime);
+
+      if (this.intro.finished) {
+        this.finishIntro();
+      }
+    } else {
+      this.update();
+    }
+
     this.draw();
 
-    this.animationId = requestAnimationFrame(() => this.loop());
+    this.animationId = requestAnimationFrame((time) => {
+      this.loop(time);
+    });
+  }
+
+  finishIntro() {
+    if (!this.introActive) return;
+
+    this.introActive = false;
+    this.intro.finish();
+
+    // Arrête l'audio de la cinématique
+    //this.audio.stopMusic("introMusic");
+
+    // Lance la musique du jeu
+    //this.audio.playMusic("backgroundMusic");
+  }
+
+  skipIntro() {
+    if (!this.introActive) {
+      return;
+    }
+
+    this.intro.skip();
+    this.finishIntro();
   }
 
 /*═══════════════════════════════════════════════════════
@@ -603,7 +760,7 @@ this.frameCount = DEV_MODE
       }
 
       if (
-        this.victoryTitleTimer >= 150 &&
+        this.victoryTitleTimer >= 400 &&
         !this.victoryFinished
       ) {
         this.victoryFinished = true;
@@ -621,13 +778,22 @@ this.frameCount = DEV_MODE
     window.handleGameOver("space-runner", this.score);
   }
   endGame() {
-    if (this.gameOver) {
+    if (this.gameOver || this.playerDeathActive) {
       return;
     }
 
-    this.gameOver = true;
-    this.isRunning = false;
-    this.playerVisible = false;
+    this.playerDeathActive = true;
+    this.playerDeathTimer = 0;
+    this.playerDeathRotation = 0;
+
+    this.audio.playSound("playerDestroy");
+
+    this.audio.stopMusic("backgroundMusic");
+    this.audio.stopMusic("introMusic");
+    this.audio.stopMusic("boss1Music");
+    this.audio.stopMusic("boss2Music");
+    this.audio.stopMusic("boss3Music");
+    this.audio.stopMusic("laserLoop");
 
     this.explosions.push({
       x: this.player.x,
@@ -635,12 +801,43 @@ this.frameCount = DEV_MODE
       radius: 8,
       life: 25
     });
+  }
+  updatePlayerDeath() {
+    this.playerDeathTimer++;
 
-    this.messageElement.textContent = `Game Over — Score: ${this.score}`;
-    window.handleGameOver("space-runner", this.score);
+    this.player.y += 3;
+    this.playerDeathRotation += 0.04;
+
+    if (this.playerDeathTimer % 18 === 0) {
+      this.explosions.push({
+        x: this.player.x + (Math.random() - 0.5) * 25,
+        y: this.player.y + (Math.random() - 0.5) * 25,
+        radius: 5,
+        life: 15
+      });
+    }
+
+    if (
+      this.playerDeathTimer >= 75 ||
+      this.player.y > this.canvas.height + 60
+    ) {
+      this.playerDeathActive = false;
+      this.playerVisible = false;
+
+      this.gameOver = true;
+      this.isRunning = false;
+
+      this.messageElement.textContent =
+        `Game Over — Score: ${this.score}`;
+
+      window.handleGameOver(
+        "space-runner",
+        this.score
+      );
+    }
   }
 
- damagePlayer() {
+  damagePlayer() {
     if (this.damageCooldown > 0) {
       return;
     }
@@ -664,12 +861,46 @@ this.frameCount = DEV_MODE
     this.endGame();
   }
 
- togglePause() {
-    if (!this.isRunning || this.gameOver || this.victoryFinished) {
+  togglePause() {
+    if (
+      !this.isRunning ||
+      this.gameOver ||
+      this.victoryFinished
+    ) {
       return;
     }
 
     this.paused = !this.paused;
+
+    if (this.paused) {
+      this.audio.pauseMusic("backgroundMusic");
+      this.audio.pauseMusic("boss1Music");
+      this.audio.pauseMusic("boss2Music");
+      this.audio.pauseMusic("boss3Music");
+      this.audio.pauseMusic("laserLoop");
+      return;
+    }
+
+    if (this.bossActive) {
+      if (this.currentBossLevel === 5) {
+        this.audio.playMusic("boss1Music");
+      }
+      if (this.currentBossLevel === 10) {
+        this.audio.playMusic("boss2Music");
+      }
+      if (this.currentBossLevel === 15) {
+        this.audio.playMusic("boss3Music");
+          if (
+            this.boss &&
+            this.boss.phase === 2 &&
+            this.dragonBeams.length > 0
+          ) {
+            this.audio.playMusic("laserLoop");
+          }
+      }
+      return;
+    }
+    this.audio.playMusic("backgroundMusic");
   }
 /*═══════════════════════════════════════════════════════
                       LEVEL / GAME PROGRESSION
@@ -844,26 +1075,47 @@ this.frameCount = DEV_MODE
       this.shootCooldown--;
     }
 
+    if (this.shootSoundCooldown > 0) {
+      this.shootSoundCooldown--;
+    }
+
     if (!keys.shoot || this.shootCooldown !== 0) {
       return;
     }
 
     if (this.weaponLevel === 1) {
-      this.bullets.push(new Bullet(this.player.x, this.player.y));
+      this.bullets.push(
+        new Bullet(this.player.x, this.player.y, this.weaponLevel)
+      );
     }
 
     if (this.weaponLevel === 2) {
-      this.bullets.push(new Bullet(this.player.x - 12, this.player.y + 10));
-      this.bullets.push(new Bullet(this.player.x + 12, this.player.y + 10));
+      this.bullets.push(
+        new Bullet(this.player.x - 12, this.player.y + 10, this.weaponLevel)
+      );
+      this.bullets.push(
+        new Bullet(this.player.x + 12, this.player.y + 10, this.weaponLevel)
+      );
     }
 
     if (this.weaponLevel === 3) {
-      this.bullets.push(new Bullet(this.player.x, this.player.y));
-      this.bullets.push(new Bullet(this.player.x - 18, this.player.y + 12));
-      this.bullets.push(new Bullet(this.player.x + 18, this.player.y + 12));
+      this.bullets.push(
+        new Bullet(this.player.x, this.player.y, this.weaponLevel)
+      );
+      this.bullets.push(
+        new Bullet(this.player.x - 18, this.player.y + 12, this.weaponLevel)
+      );
+      this.bullets.push(
+        new Bullet(this.player.x + 18, this.player.y + 12, this.weaponLevel)
+      );
     }
 
-    this.shootCooldown = 12;
+    if (this.shootSoundCooldown === 0) {
+      this.audio.playShoot();
+      this.shootSoundCooldown = 18;
+    }
+
+    this.shootCooldown = 20;
   }
   updateBullets() {
     for (const bullet of this.bullets) {
@@ -878,7 +1130,7 @@ this.frameCount = DEV_MODE
 ═══════════════════════════════════════════════════════*/
 
   updateEnemies() {
-    if (!this.bossTransition) {
+    if (!this.bossTransition && !this.bossActive) {
       this.enemySpawnTimer++;
 
       const spawnRate = Math.max(
@@ -906,7 +1158,7 @@ this.frameCount = DEV_MODE
       return;
     }
 
-    if (!this.bossTransition) {
+    if (!this.bossTransition && !this.bossActive) {
       this.meteorSpawnTimer++;
 
       const spawnRate = Math.max(
@@ -934,6 +1186,11 @@ this.frameCount = DEV_MODE
   updateSteelEyeEnemies() {
     for (const enemy of this.steelEyeEnemies) {
       enemy.update(this.player);
+
+      if (enemy.justStartedCharge) {
+        this.audio.playSteelEyeSwoosh();
+        enemy.justStartedCharge = false;
+      }
     }
 
     this.steelEyeEnemies =
@@ -948,6 +1205,9 @@ this.frameCount = DEV_MODE
         enemy.shootTimer--;
 
         if (enemy.shootTimer <= 0 && enemy.shotsFired < 3) {
+          if (enemy.shotsFired === 0) {
+            this.audio.playSideEnemyTriple();
+          }
           this.enemyBullets.push(
             new EnemyBullet(
               enemy.x + enemy.width / 2,
@@ -972,14 +1232,12 @@ this.frameCount = DEV_MODE
                       BONUSES
 ═══════════════════════════════════════════════════════*/
   tryDropBonus(enemy) {
-    const roll = Math.random();
-
-    if (this.level >= 6 && this.weaponLevel === 1 && roll < 0.08) {
+    if (Math.random() < 0.020) {
       this.bonuses.push(
         new Bonus(
           enemy.x + enemy.width / 2,
           enemy.y + enemy.height / 2,
-          BONUS_TYPES.DOUBLE_SHOT
+          BONUS_TYPES.SHIELD
         )
       );
     }
@@ -1030,6 +1288,18 @@ this.frameCount = DEV_MODE
     this.bossActive = true;
     this.currentBossLevel = level;
 
+    this.audio.pauseMusic("backgroundMusic");
+
+    if (level === 5) {
+      this.audio.playMusic("boss1Music");
+    }
+    if (level === 10) {
+      this.audio.playMusic("boss2Music");
+    }
+    if (level === 15) {
+      this.audio.playMusic("boss3Music");
+    }
+
     this.bossProjectiles = [];
     this.dragonBeams = [];
     this.dragonBeamAngle = 0;
@@ -1044,6 +1314,21 @@ this.frameCount = DEV_MODE
     }
 
     this.boss.update();
+    if (
+      this.currentBossLevel === 15 &&
+      this.boss.phaseThreeStarted
+    ) {
+      this.audio.playDragonPhaseThree();
+      this.boss.phaseThreeStarted = false;
+    }
+
+    if (
+      this.currentBossLevel === 10 &&
+      this.boss.justChangedDirection
+    ) {
+      this.audio.playSound("wormTurn");
+      this.boss.justChangedDirection = false;
+    }
 
     // Déclenche la cinématique lorsque le boss devient inactif.
     if (!this.boss.active && !this.bossDeathActive) {
@@ -1089,6 +1374,9 @@ this.frameCount = DEV_MODE
 
     this.bossDeathActive = true;
 
+    this.audio.playSound("bossDestroy");
+    this.audio.stopMusic("laserLoop");
+
     this.bossDeathSequence = new BossDeathSequence(
       this.boss,
       bossType
@@ -1114,8 +1402,9 @@ this.frameCount = DEV_MODE
     this.scoreElement.textContent = this.score;
 
     if (defeatedLevel === 5) {
-      this.hasShield = true;
-      this.showBonusMessage("SHIELD ACQUIRED");
+      this.weaponLevel = Math.max(this.weaponLevel, 2);
+
+      this.showBonusMessage("DOUBLE SHOT ACQUIRED");
     }
     if (defeatedLevel === 10) {
       this.weaponLevel = 3;
@@ -1131,6 +1420,16 @@ this.frameCount = DEV_MODE
        );
       }
     }
+    
+
+  
+    // fin de musique boss
+    this.audio.stopMusic("boss1Music");
+    this.audio.stopMusic("boss2Music");
+    this.audio.stopMusic("boss3Music");
+    // reprise music normal
+    this.audio.playMusic("backgroundMusic");
+
     if (defeatedLevel === 15) {
       this.startVictorySequence();
       return;
@@ -1154,6 +1453,8 @@ this.frameCount = DEV_MODE
     const projectileCount = 13;
     const startAngle = 0;
     const endAngle = Math.PI;
+
+    this.audio.playSound("bossEyeShoot");
 
     for (let i = 0; i < projectileCount; i++) {
       const ratio = i / (projectileCount - 1);
@@ -1186,8 +1487,8 @@ this.frameCount = DEV_MODE
     for (const bullet of this.bullets) {
       if (isColliding(bullet, this.boss)) {
         bullet.active = false;
+        this.audio.playBossHit();
         this.boss.takeDamage();
-
         this.explosions.push({
           x: bullet.x,
           y: bullet.y,
@@ -1242,8 +1543,9 @@ this.frameCount = DEV_MODE
 
         if (isColliding(bullet, segmentHitbox)) {
           bullet.active = false;
+          this.audio.playBossHit();
           this.boss.takeDamage();
-
+          
           this.explosions.push({
             x: bullet.x,
             y: bullet.y,
@@ -1299,27 +1601,11 @@ this.frameCount = DEV_MODE
       height: 115
     };
   }
-
-  updateDragonPhaseOne() {
-    if (
-      !this.bossActive ||
-      !this.boss ||
-      this.currentBossLevel !== 15 ||
-      this.boss.state !== "fighting" ||
-      this.boss.phase !== 1
-    ) {
-      return;
-    }
-    if (this.boss.phase !== 1) {
-      return;
-    }
-
-    if (this.boss.attackTimer > 0) {
-      return;
-    }
-
+  spawnDragonFireball() {
     const mouth =
       this.boss.getMouthPosition();
+
+    this.audio.playSound("fireBall");
 
     this.dragonFireballs.push(
       new DragonFireball(
@@ -1331,6 +1617,23 @@ this.frameCount = DEV_MODE
     );
 
     this.boss.attackTimer = 110;
+  }
+  updateDragonPhaseOne() {
+    if (
+      !this.bossActive ||
+      !this.boss ||
+      this.currentBossLevel !== 15 ||
+      this.boss.state !== "fighting" ||
+      this.boss.phase !== 1
+    ) {
+      return;
+    }
+
+    if (this.boss.attackTimer > 0) {
+      return;
+    }
+
+    this.spawnDragonFireball();
   }
 
   updateDragonPhaseTwo() {
@@ -1362,9 +1665,11 @@ this.frameCount = DEV_MODE
     }
 
     if (this.dragonBeams.length === 0) {
+      this.audio.playSound("laserCharge");
       this.dragonBeams.push(
         new DragonBeam(0)
       );
+      this.audio.playMusic("laserLoop");
     }
 
     const healthRatio =
@@ -1423,19 +1728,7 @@ this.frameCount = DEV_MODE
       return;
     }
 
-    const mouth =
-      this.boss.getMouthPosition();
-
-    this.dragonFireballs.push(
-      new DragonFireball(
-        mouth.x,
-        mouth.y,
-        this.player.x,
-        this.player.y
-      )
-    );
-
-    this.boss.attackTimer = 110;
+    this.spawnDragonFireball();
   }
   updateDragonPhaseThreeLasers() {
     this.dragonLaserTimer--;
@@ -1450,6 +1743,7 @@ this.frameCount = DEV_MODE
     const angle =
       Math.random() * Math.PI;
 
+    this.audio.playSound("dragonLaser");
     this.dragonLasers.push(
       new DragonLaser(
         mouth.x,
@@ -1480,9 +1774,10 @@ this.frameCount = DEV_MODE
           dragonHitbox
         )
       ) {
-        bullet.active = false;
+        bullet.active = false; 
+        this.audio.playBossHit();
         this.boss.takeDamage();
-
+       
         this.explosions.push({
           x: bullet.x,
           y: bullet.y,
@@ -1563,11 +1858,13 @@ this.frameCount = DEV_MODE
       !this.boss ||
       this.currentBossLevel !== 15
     ) {
+      this.audio.stopMusic("laserLoop");
       this.dragonBeams = [];
       return;
     }
 
     if (this.boss.phase !== 2) {
+      this.audio.stopMusic("laserLoop");
       this.dragonBeams = [];
     }
   }
@@ -1592,6 +1889,8 @@ this.frameCount = DEV_MODE
       );
   }
 
+
+
 /*═══════════════════════════════════════════════════════
                       COLLISIONS
 ═══════════════════════════════════════════════════════*/
@@ -1604,6 +1903,7 @@ this.frameCount = DEV_MODE
           bullet.active = false;
           enemy.active = false;
 
+          this.audio.playSound("enemyDestroy");
           this.score += 100;
           this.scoreElement.textContent = this.score;
 
@@ -1633,6 +1933,7 @@ this.frameCount = DEV_MODE
 
           if (!meteor.active) {
             this.score += 30;
+            this.audio.playSound("enemyDestroy");
             this.scoreElement.textContent = this.score;
 
             this.explosions.push({
@@ -1741,6 +2042,7 @@ this.frameCount = DEV_MODE
 
           if (!enemy.active) {
             this.score += 250;
+            this.audio.playSound("enemyDestroy");
             this.scoreElement.textContent = this.score;
 
             this.explosions.push({
@@ -1773,6 +2075,7 @@ this.frameCount = DEV_MODE
 
     for (const bonus of this.bonuses) {
       if (isColliding(playerHitbox, bonus)) {
+        this.audio.playSound("bonusPickup");
         bonus.active = false;
 
         if (bonus.type === BONUS_TYPES.DOUBLE_SHOT && this.weaponLevel < 2) {
@@ -1783,6 +2086,12 @@ this.frameCount = DEV_MODE
         if (bonus.type === BONUS_TYPES.TRIPLE_SHOT && this.weaponLevel < 3) {
           this.weaponLevel = 3;
           this.showBonusMessage("TRIPLE SHOT ACQUIRED");
+        }
+
+        // Nouveau : récupération du bouclier
+        if (bonus.type === BONUS_TYPES.SHIELD && !this.hasShield) {
+          this.hasShield = true;
+          this.showBonusMessage("SHIELD ACQUIRED");
         }
       }
     }

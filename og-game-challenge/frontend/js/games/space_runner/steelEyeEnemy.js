@@ -15,10 +15,10 @@ export class SteelEyeEnemy {
       CANVAS_HEIGHT * (0.05 + Math.random() * 0.10);
 
     this.speed = 1.2;
-    this.chargeSpeed = 7 + (level - 11) * 0.35;
+    this.chargeSpeed = 6 + (level - 11) * 0.35;
 
-    this.health = 6;
-    this.maxHealth = 6;
+    this.health = 4;
+    this.maxHealth = 4;
 
     this.active = true;
     this.state = "descending";
@@ -28,6 +28,8 @@ export class SteelEyeEnemy {
 
     this.spikeProgress = 0;
     this.eyeIntensity = 0;
+
+    this.justStartedCharge = false;
 
     this.vx = 0;
     this.vy = 0;
@@ -108,6 +110,7 @@ export class SteelEyeEnemy {
     }
 
     this.state = "charging";
+    this.justStartedCharge = true;
   }
 
   updateCharging() {
