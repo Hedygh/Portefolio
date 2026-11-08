@@ -1,0 +1,18 @@
+Exécution : python3 -m unittest discover -s tests -v
+Date : 8 novembre 2026
+
+test_duplicate_registration_and_invalid_login_are_rejected ... ok
+test_health_and_games_are_available ... ok
+test_lower_score_does_not_replace_personal_best ... ok
+test_register_login_and_read_own_profile ... ok
+test_registration_is_only_available_through_auth_route ... ok
+test_score_requires_jwt_and_uses_authenticated_identity ... ok
+test_user_cannot_read_another_profile ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.649s
+
+OK
+
+Contexte : résultat obtenu après ajout de l'exclusion de password_hash dans
+les réponses publiques et des assertions correspondantes.

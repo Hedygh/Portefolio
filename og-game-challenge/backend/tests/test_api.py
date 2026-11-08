@@ -59,6 +59,8 @@ class ApiTestCase(unittest.TestCase):
         token = registration["access_token"]
         user_id = registration["user"]["id"]
 
+        self.assertNotIn("password_hash", registration["user"])
+
         login = self.client.post(
             "/api/v1/auth/login",
             json={"username": "alice", "password": "secure-password"}
@@ -73,6 +75,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(unauthenticated.status_code, 401)
         self.assertEqual(profile.status_code, 200)
         self.assertEqual(profile.get_json()["username"], "alice")
+        self.assertNotIn("password_hash", profile.get_json())
 
     def test_registration_is_only_available_through_auth_route(self):
         response = self.client.post(

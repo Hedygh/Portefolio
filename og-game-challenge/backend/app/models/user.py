@@ -61,3 +61,9 @@ class User(BaseModel):
             return False
 
         return bcrypt.check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        """Return public user data without exposing the password hash."""
+        data = super().to_dict()
+        data.pop("password_hash", None)
+        return data
