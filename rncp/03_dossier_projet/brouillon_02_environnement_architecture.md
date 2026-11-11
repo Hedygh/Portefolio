@@ -24,7 +24,7 @@ Cette solution reste légère et adaptée à la taille du projet. Elle permet é
 
 Flask constitue le cœur de l'application serveur. Il initialise l'application, charge la configuration et reçoit les requêtes HTTP.
 
-Flask-RESTX permet d'organiser l'API en espaces de noms et génère l'interface Swagger. Cette interface a été particulièrement utile pendant le développement, car elle permettait de tester chaque route avant même que le frontend soit connecté.
+Flask-RESTX permet d'organiser l'API en namespaces et génère l'interface Swagger. Cette interface a été particulièrement utile pendant le développement, car elle permettait de tester chaque route avant même que le frontend soit connecté.
 
 Les routes sont regroupées sous le préfixe `/api/v1`. Elles couvrent l'authentification, les utilisateurs, les jeux, les scores, les classements et le contrôle de santé de l'API.
 
@@ -36,7 +36,7 @@ SQLite a été retenu pour le développement local. Il ne demande pas l'installa
 
 ### Authentification
 
-L'authentification utilise des jetons JWT. Après une inscription ou une connexion valide, l'API renvoie un jeton au navigateur. Ce jeton accompagne ensuite les requêtes protégées.
+L'authentification utilise des tokens JWT. Après une inscription ou une connexion valide, l'API renvoie un token au navigateur. Ce token accompagne ensuite les requêtes protégées.
 
 Les mots de passe ne sont jamais enregistrés directement. Bcrypt produit une empreinte qui est conservée dans la base et utilisée lors de la vérification du mot de passe.
 
@@ -96,7 +96,7 @@ Le tri décroissant est ensuite appliqué lors de la récupération du classemen
 
 ## 4.6 Organisation des dossiers
 
-Le dépôt sépare les trois grandes parties du projet :
+Le repository Git sépare les trois grandes parties du projet :
 
 ```text
 og-game-challenge/
@@ -127,16 +127,3 @@ Si j'avais disposé de davantage de temps libre, j'aurais surtout consacré plus
 Je modifierais toutefois la manière de planifier certaines fonctionnalités du jeu. L'audio a été ajouté tardivement alors qu'il affecte de nombreux événements : lancement, tirs, ennemis, boss, transitions et écran final. L'intégrer dès la conception aurait évité plusieurs ajustements en fin de développement.
 
 Les deux autres difficultés importantes de Space Runner ont été les performances et l'équilibrage. Il fallait conserver suffisamment d'éléments à l'écran pour donner du rythme sans rendre la boucle de jeu instable. Il fallait également augmenter progressivement la difficulté sans rendre les premières minutes trop faciles ou les dernières phases injustes.
-
-Ces difficultés m'ont montré qu'un jeu ne se résume pas à faire fonctionner ses mécaniques. Les performances, le son et l'équilibrage influencent directement l'expérience du joueur et doivent être prévus assez tôt dans le développement.
-
----
-
-## Illustrations et extraits à intégrer ultérieurement
-
-- schéma général navigateur → API → façade → repository → SQLite ;
-- arborescence simplifiée du projet ;
-- capture de Swagger à l'adresse `/api/v1/` ;
-- extrait court de la méthode de conservation du meilleur score ;
-- diagramme de séquence d'enregistrement d'un score ;
-- capture de Space Runner.

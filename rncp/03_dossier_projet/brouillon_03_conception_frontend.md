@@ -100,7 +100,7 @@ Pour les deux premiers jeux, j'ai défini le type de jeu attendu. Nael a ensuite
 
 Space Runner a été conçu et développé entièrement par moi après la phase initiale. Il reprend le même principe d'intégration : le jeu reste autonome pour son gameplay, mais transmet son résultat à l'API du portfolio.
 
-Cette distinction est importante pour présenter le projet au jury. Le dossier rend compte de l'application dans son ensemble, mais je dois être capable d'identifier précisément ma contribution et celle de chaque membre.
+Cette distinction permet de présenter clairement la répartition du travail. Le dossier rend compte de l'application dans son ensemble tout en identifiant précisément ma contribution et celle de chaque membre.
 
 ## 5.9 Premiers éléments d'accessibilité
 
@@ -117,21 +117,4 @@ Ces éléments restent des améliorations ciblées. Une vérification complète 
 
 ## 5.10 Bilan de la conception frontend
 
-L'interface remplit son objectif principal : créer un cadre cohérent autour de plusieurs jeux et rendre visible le parcours complet de l'utilisateur.
-
-La participation de plusieurs personnes a apporté des idées différentes, mais elle a aussi demandé de préciser les responsabilités. J'ai défini le concept général et les types de jeux, participé à l'accueil et piloté les fonctionnalités attendues. Geoffray a réalisé le frontend principal et Nael a transformé les deux premiers types de jeux en réalisations jouables.
-
-L'amélioration mobile récente montre aussi que le projet a continué d'évoluer après sa première livraison. Elle ne change pas le besoin initial, mais rend aujourd'hui la démonstration plus accessible sur différents écrans.
-
----
-
-## Illustrations et extraits à intégrer ultérieurement
-
-- maquette desktop du catalogue ;
-- maquette mobile du catalogue ;
-- schéma du parcours utilisateur ;
-- capture desktop de l'accueil ;
-- captures mobiles déjà disponibles ;
-- extrait HTML d'une interface ;
-- extrait des variables CSS ;
-- extrait court de `responsive.css`.
+L'interface fournit un cadre cohérent aux trois jeux et au parcours utilisateur. L'ajout récent de la couche responsive prolonge cette conception sans modifier l'identité visuelle initiale.

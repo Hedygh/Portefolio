@@ -177,9 +177,7 @@ Cette veille a conduit ou contribué à plusieurs actions concrètes :
 
 ## 11.1 Résultat obtenu
 
-OG Game Challenge remplit aujourd'hui le parcours principal imaginé au départ. Un utilisateur peut créer un compte, se connecter, consulter trois jeux, jouer, enregistrer son meilleur score et consulter un classement.
-
-Le projet réunit un frontend, une API, une base relationnelle, une authentification et plusieurs jeux. Il est utilisable sur ordinateur et les interfaces principales sont consultables sur téléphone.
+OG Game Challenge remplit aujourd'hui le parcours principal imaginé au départ : un utilisateur peut créer un compte, se connecter, consulter trois jeux, jouer, enregistrer son meilleur score et consulter un classement. Le projet réunit un frontend, une API, une base relationnelle et une authentification, avec une interface utilisable sur ordinateur et consultable sur téléphone.
 
 ## 11.2 Ce que le projet m'a apporté
 
@@ -195,16 +193,8 @@ Cette expérience a renforcé mon envie de m'orienter vers le jeu vidéo. Elle m
 
 ## 11.4 Recul sur le projet
 
-Je ne changerais pas profondément les technologies choisies. Elles correspondaient à mon expérience et au temps disponible.
-
-Avec davantage de temps, j'aurais surtout approfondi Space Runner. Je planifierais l'audio plus tôt et je réserverais davantage de temps aux mesures de performance et aux essais d'équilibrage.
-
-Sur la partie web, je renforcerais la configuration de production, les migrations, les tests frontend et la protection de la session. Ces améliorations ne sont pas nécessaires pour inventer un nouveau projet : elles prolongent logiquement ce qui existe déjà.
+Avec davantage de temps, je prioriserais l'audio, les mesures de performance et les essais d'équilibrage de Space Runner. Sur la partie web, je renforcerais la configuration de production, les migrations, les tests frontend et la protection de la session.
 
 ## 11.5 Conclusion
 
-Ce projet a commencé comme un travail d'équipe de fin de formation, puis il est devenu un portfolio que j'ai continué à intégrer et à faire évoluer seul.
-
-Il montre ma progression sur plusieurs plans : conception d'une idée, pilotage d'une équipe, développement backend, intégration full-stack et création d'un jeu plus personnel.
-
-Le résultat n'est pas une application commerciale terminée, et je peux identifier ses limites. Il constitue toutefois un ensemble cohérent, fonctionnel et suffisamment complet pour expliquer les compétences que j'ai réellement mises en œuvre.
+Passé d'un travail d'équipe à une reprise individuelle, OG Game Challenge reflète ma progression du backend vers l'intégration full-stack et la programmation de jeux. Ses limites sont identifiées, mais l'ensemble reste cohérent, fonctionnel et représentatif des compétences que j'ai réellement mises en œuvre.

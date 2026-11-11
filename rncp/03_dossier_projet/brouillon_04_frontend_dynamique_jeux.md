@@ -26,7 +26,7 @@ Authorization: Bearer <token>
 
 Le frontend sait donc transmettre la preuve d'authentification, mais il ne décide pas si l'action est autorisée. Cette décision reste prise par le backend.
 
-Le stockage local est simple et adapté à ce MVP, mais il présente une limite : un script injecté dans la page pourrait tenter d'y lire le jeton. Une version de production demanderait une réflexion plus poussée sur la protection contre les attaques XSS et sur l'utilisation éventuelle de cookies sécurisés.
+Le stockage local est simple et adapté à ce MVP, mais il présente une limite : un script injecté dans la page pourrait tenter d'y lire le token. Une version de production demanderait une réflexion plus poussée sur la protection contre les attaques XSS et sur l'utilisation éventuelle de cookies sécurisés.
 
 ## 6.3 Catalogue dynamique
 
@@ -79,8 +79,6 @@ L'audio a été ajouté tardivement. Ce choix a demandé plus de travail que pr�
 
 L'équilibrage ne pouvait pas être résolu par une formule unique. J'ai dû ajuster la fréquence des ennemis, les dégâts, les bonus et les attaques des boss pour construire une progression exigeante sans la rendre injuste.
 
-Ces trois sujets m'ont fait comprendre qu'un jeu fonctionnel n'est pas forcément agréable à jouer. Le ressenti dépend autant de la stabilité, du son et du rythme que des règles principales.
-
 ## 6.8 Limites actuelles
 
 Le frontend dynamique remplit les objectifs du MVP, mais plusieurs limites restent connues :
@@ -92,15 +90,3 @@ Le frontend dynamique remplit les objectifs du MVP, mais plusieurs limites reste
 - aucun test automatisé du navigateur n'est encore présent.
 
 Ces limites ne remettent pas en cause le parcours démontré. Elles permettent surtout de distinguer un MVP fonctionnel d'une version destinée à une mise en production publique.
-
----
-
-## Illustrations et extraits à intégrer
-
-- extrait de `apiRequest()` ;
-- extrait de `renderGames()` ;
-- extrait de `handleGameOver()` ;
-- séquence de sauvegarde d'un score ;
-- capture du catalogue ;
-- capture de Space Runner ;
-- capture du classement.

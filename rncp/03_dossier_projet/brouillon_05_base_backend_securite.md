@@ -101,15 +101,3 @@ Le projet présente plusieurs limites que je préfère identifier clairement :
 - la base utilise `create_all()` plutôt que des migrations.
 
 Ces éléments sont acceptables pour un MVP local, mais ils devraient être traités avant une ouverture publique. Le dossier distingue donc les protections réellement mises en œuvre des recommandations de production.
-
----
-
-## Illustrations et extraits à intégrer
-
-- MCD et MLD ;
-- extrait du modèle `Score` ;
-- extrait du repository ;
-- extrait de `submit_score()` ;
-- extrait de la route protégée ;
-- capture Swagger anonymisée de l'inscription ;
-- extrait du test vérifiant l'absence de `password_hash`.

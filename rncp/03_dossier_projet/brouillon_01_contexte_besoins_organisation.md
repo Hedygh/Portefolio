@@ -188,18 +188,4 @@ J'ai ensuite développé seul Space Runner. Ce jeu représente la réalisation d
 
 ### 3.6 Premier bilan organisationnel
 
-La séparation initiale des responsabilités a permis à l'équipe de progresser rapidement pendant une période courte. Elle a cependant montré qu'un découpage technique ne suffit pas : les contrats entre les composants doivent être définis avec précision dès le début.
-
-Le pilotage du projet m'a demandé de combiner réalisation technique, répartition des tâches et adaptation aux contraintes humaines. La poursuite individuelle m'a ensuite permis de mieux comprendre l'ensemble du système, car j'ai dû assurer moi-même la communication entre le frontend, le backend, la base de données et les jeux.
-
-Le développement de Space Runner constitue enfin un prolongement personnel du projet. Il marque le passage d'un travail principalement centré sur le backend vers une pratique plus large incluant l'intégration et la programmation de jeux.
-
----
-
-## Illustrations à intégrer ultérieurement
-
-- capture de l'accueil desktop ;
-- frise simple des deux phases du projet ;
-- tableau ou schéma de répartition des responsabilités ;
-- schéma d'architecture générale ;
-- capture de Space Runner.
+Cette organisation m'a surtout appris à préciser les contrats entre les composants et les résultats attendus avant de répartir le travail. La reprise individuelle m'a ensuite donné une vision complète du système et a préparé le développement de Space Runner.
